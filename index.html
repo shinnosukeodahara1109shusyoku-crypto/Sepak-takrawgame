@@ -112,28 +112,31 @@ document.addEventListener('keyup', e => { keys[e.code] = false; });
 // ── CPU AI ────────────────────────────────────────
 function cpuAI() {
   if (gameState !== 'play') return;
-  const spd = 3.2;
-  const targetX = ball.x > NET_X ? ball.x - 20 : NET_X + 60;
+  const spd = 3.6;
+  // 自陣側に来たボールを常に追いかける
+  const minX = NET_X + 10;
+  const maxX = W - 10;
+  const targetX = Math.max(minX, Math.min(maxX, ball.x));
 
-  if (cpu.x < targetX - 6) cpu.vx = spd;
-  else if (cpu.x > targetX + 6) cpu.vx = -spd;
+  if (cpu.x < targetX - 5) cpu.vx = spd;
+  else if (cpu.x > targetX + 5) cpu.vx = -spd;
   else cpu.vx = 0;
 
-  // ジャンプ判断
-  if (ball.x > NET_X && ball.y < GROUND - 60 && cpu.onGround) {
-    if (Math.abs(cpu.x - ball.x) < 120) {
+  // ジャンプ判断（ボールが近づいてきたら早めに跳ぶ）
+  if (ball.x > NET_X - 30 && ball.y < GROUND - 40 && cpu.onGround) {
+    if (Math.abs(cpu.x - ball.x) < 140) {
       cpu.vy = -11;
       cpu.onGround = false;
     }
   }
 
-  // キック判断
+  // キック判断（範囲を広めに）
   if (cpu.kickCooldown <= 0) {
     const dx = Math.abs(cpu.x - ball.x);
     const dy = Math.abs(cpu.y - ball.y);
-    if (!cpu.onGround && dy < 50 && dx < 60) {
+    if (!cpu.onGround && dy < 60 && dx < 70) {
       doOverhead(cpu);
-    } else if (dx < 55 && dy < 55) {
+    } else if (dx < 65 && dy < 65) {
       doKick(cpu);
     }
   }
