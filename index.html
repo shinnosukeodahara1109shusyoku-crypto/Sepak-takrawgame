@@ -268,11 +268,12 @@ function doKick(ent) {
   if (ent.kickCooldown > 0) return;
   const dx = ball.x - ent.x;
   const dy = ball.y - ent.y;
-  if (Math.abs(dx) < 60 && Math.abs(dy) < 60) {
+  if (Math.abs(dx) < 60 && Math.abs(dy) < 80) {
     const spd = ent.isPlayer ? 13 : 11;
-    ball.vx = (dx > 0 ? 1 : -1) * spd * 0.7 + (ent.isPlayer ? 0.5 : -0.5);
+    const dir = Math.abs(dx) < 5 ? ent.facing : (dx > 0 ? 1 : -1);
+    ball.vx = dir * spd * 0.7 + (ent.isPlayer ? 0.5 : -0.5);
     ball.vy = -spd * 0.85;
-    ball.spin = dx > 0 ? 6 : -6;
+    ball.spin = dir > 0 ? 6 : -6;
     ent.kickCooldown = 20;
     ent.kickEffect = 10;
     ent.justKicked = true;
