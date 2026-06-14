@@ -374,10 +374,15 @@ function ballPlayerCollision(ent) {
     ball.x += nx * overlap;
     ball.y += ny * overlap;
 
-    const pushSpeed = 4.5;
-    ball.vx = nx * pushSpeed + ent.vx * 0.4;
-    ball.vy = ny * pushSpeed + ent.vy * 0.4 - 1.5;
-    ball.spin += ent.vx * 0.25;
+    // ボールが選手に向かって来ている時だけ跳ね返す（蹴った直後にボールが
+    // 離れていく速度を上書きしてしまわないようにする）
+    const approachSpeed = ball.vx * nx + ball.vy * ny;
+    if (approachSpeed < 0) {
+      const pushSpeed = 4.5;
+      ball.vx = nx * pushSpeed + ent.vx * 0.4;
+      ball.vy = ny * pushSpeed + ent.vy * 0.4 - 1.5;
+      ball.spin += ent.vx * 0.25;
+    }
   }
 }
 
