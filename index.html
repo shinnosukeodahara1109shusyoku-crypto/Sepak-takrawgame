@@ -45,7 +45,7 @@ const ctx = canvas.getContext('2d');
 const W = canvas.width, H = canvas.height;
 
 // ── 定数 ──────────────────────────────────────────
-const GRAVITY = 0.45;
+const GRAVITY = 0.28;
 const GROUND = H - 60;
 const NET_X = W / 2;
 const NET_H = 100;
@@ -111,7 +111,7 @@ document.addEventListener('keyup', e => { keys[e.code] = false; });
 // ── CPU AI ────────────────────────────────────────
 function cpuAI() {
   if (gameState !== 'play') return;
-  const spd = 3.2;
+  const spd = 2.3;
   const targetX = ball.x > NET_X ? ball.x - 20 : NET_X + 60;
 
   if (cpu.x < targetX - 6) cpu.vx = spd;
@@ -121,7 +121,7 @@ function cpuAI() {
   // ジャンプ判断
   if (ball.x > NET_X && ball.y < GROUND - 60 && cpu.onGround) {
     if (Math.abs(cpu.x - ball.x) < 120) {
-      cpu.vy = -11;
+      cpu.vy = -9;
       cpu.onGround = false;
     }
   }
@@ -144,7 +144,7 @@ function doKick(ent) {
   const dx = ball.x - ent.x;
   const dy = ball.y - ent.y;
   if (Math.abs(dx) < 60 && Math.abs(dy) < 60) {
-    const spd = ent.isPlayer ? 13 : 11;
+    const spd = ent.isPlayer ? 9.5 : 8;
     ball.vx = (dx > 0 ? 1 : -1) * spd * 0.7 + (ent.isPlayer ? 0.5 : -0.5);
     ball.vy = -spd * 0.85;
     ball.spin = dx > 0 ? 6 : -6;
@@ -159,8 +159,8 @@ function doOverhead(ent) {
   const dx = ball.x - ent.x;
   const dy = ball.y - ent.y;
   if (Math.abs(dx) < 70 && Math.abs(dy) < 80) {
-    ball.vx = (ent.isPlayer ? 1 : -1) * 10;
-    ball.vy = 9;  // 鋭角落下
+    ball.vx = (ent.isPlayer ? 1 : -1) * 7;
+    ball.vy = 6.5;  // 鋭角落下
     ball.spin = ent.isPlayer ? -8 : 8;
     ent.kickCooldown = 25;
     ent.overheadState = 2;
@@ -236,12 +236,12 @@ function updatePlayer(ent) {
   ent.vy += GRAVITY;
 
   if (ent.isPlayer) {
-    if (keys['ArrowLeft'])  { ent.vx = -4.5; ent.facing = -1; }
-    else if (keys['ArrowRight']) { ent.vx = 4.5; ent.facing = 1; }
+    if (keys['ArrowLeft'])  { ent.vx = -3.2; ent.facing = -1; }
+    else if (keys['ArrowRight']) { ent.vx = 3.2; ent.facing = 1; }
     else ent.vx *= 0.7;
 
     if ((keys['Space'] || keys['ArrowUp']) && ent.onGround) {
-      ent.vy = -11.5; ent.onGround = false;
+      ent.vy = -9; ent.onGround = false;
     }
     if (keys['KeyZ'] && ent.kickCooldown <= 0) doKick(ent);
     if (keys['KeyX'] && ent.kickCooldown <= 0) doOverhead(ent);
