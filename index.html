@@ -778,9 +778,12 @@ function gameLoop(ts) {
       pointMsg = remoteHostState.pointMsg;
       pointTimer = remoteHostState.pointTimer;
 
-      ball.x = remoteHostState.ball.x; ball.y = remoteHostState.ball.y;
       ball.vx = remoteHostState.ball.vx; ball.vy = remoteHostState.ball.vy;
       ball.spin = remoteHostState.ball.spin;
+      // 位置はホストへ滑らかに補正することで、毎フレームのスナップによる
+      // 「速すぎる」見え方を防ぐ
+      ball.x += (remoteHostState.ball.x - ball.x) * 0.3;
+      ball.y += (remoteHostState.ball.y - ball.y) * 0.3;
 
       player.x = remoteHostState.player.x; player.y = remoteHostState.player.y;
       player.facing = remoteHostState.player.facing;
@@ -792,6 +795,7 @@ function gameLoop(ts) {
       if (wasGameState !== 'play' && gameState === 'play') {
         // ホストが得点後にリセットしたのでゲスト側の自キャラもリセット
         cpu.x = W * 0.75; cpu.y = GROUND; cpu.vx = 0; cpu.vy = 0; cpu.onGround = true;
+        ball.x = remoteHostState.ball.x; ball.y = remoteHostState.ball.y;
         ball.trail = [];
         effects = [];
       }
