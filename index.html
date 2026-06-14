@@ -163,8 +163,8 @@ function doOverhead(ent) {
   const dx = ball.x - ent.x;
   const dy = ball.y - ent.y;
   if (Math.abs(dx) < 70 && Math.abs(dy) < 80) {
-    ball.vx = (ent.isPlayer ? 1 : -1) * 10;
-    ball.vy = 9;  // 鋭角落下
+    ball.vx = (ent.isPlayer ? 1 : -1) * 14;
+    ball.vy = 6;  // 相手コートに飛ぶ角度
     ball.spin = ent.isPlayer ? -8 : 8;
     ent.kickCooldown = 25;
     ent.overheadState = 2;
