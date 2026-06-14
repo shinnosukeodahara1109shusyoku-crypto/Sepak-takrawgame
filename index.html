@@ -173,6 +173,7 @@ let stars = [];
 
 // ── 通信対戦 ──────────────────────────────────────
 let mode = 'cpu'; // 'cpu' | 'host' | 'guest'
+let serveSide = 1; // 1: 自分側からスタート, -1: 相手側からスタート（得点ごとに交互）
 let roomRef = null;
 let remoteInput = { left:false, right:false, jump:false, down:false, kick:false, overhead:false };
 let remoteHostState = null;
@@ -204,8 +205,8 @@ function makePlayer(x, isPlayer) {
 
 function makeBall() {
   return {
-    x: W / 4, y: GROUND - 200,
-    vx: 2, vy: -3,
+    x: serveSide === 1 ? W / 4 : W * 3 / 4, y: GROUND - 200,
+    vx: 2 * serveSide, vy: -3,
     spin: 0, trail: [],
   };
 }
@@ -302,6 +303,7 @@ function doKick(ent) {
     ent.kickCooldown = 20;
     ent.kickEffect = 10;
     addEffect(ball.x, ball.y, '#ff0', 'kick');
+    playAttackSound();
   }
 }
 
@@ -440,10 +442,11 @@ function showPoint(msg, next) {
 }
 
 function resetAfterPoint() {
+  serveSide = -serveSide;
   player.x = W * 0.25; player.y = GROUND; player.vx = 0; player.vy = 0; player.onGround = true;
   cpu.x = W * 0.75; cpu.y = GROUND; cpu.vx = 0; cpu.vy = 0; cpu.onGround = true;
-  ball.x = W / 4; ball.y = GROUND - 240;
-  ball.vx = 2; ball.vy = -4; ball.spin = 0; ball.trail = [];
+  ball.x = serveSide === 1 ? W / 4 : W * 3 / 4; ball.y = GROUND - 240;
+  ball.vx = 2 * serveSide; ball.vy = -4; ball.spin = 0; ball.trail = [];
   effects = [];
   gameState = 'play';
 }
