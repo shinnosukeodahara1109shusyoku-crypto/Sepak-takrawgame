@@ -44,7 +44,19 @@
   #startScreen .controls h3 { color: #ff9; margin-bottom: 8px; }
   #startBtn { margin-top: 24px; padding: 12px 40px; font-size: 20px; background: #f60; color: #fff; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 0 20px #f60; transition: transform 0.1s; }
   #startBtn:hover { transform: scale(1.05); }
+
+  #modeSelect, #onlineMenu { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 16px; }
+  .mode-btn { padding: 12px 40px; font-size: 18px; background: #46c; color: #fff; border: none; border-radius: 8px; cursor: pointer; transition: transform 0.1s; }
+  .mode-btn:hover { transform: scale(1.05); }
+  #onlineMenu { background: rgba(255,255,255,0.05); padding: 16px 24px; border-radius: 10px; min-width: 260px; }
+  #onlineMenu input { font-size: 20px; text-align: center; letter-spacing: 4px; width: 110px; padding: 6px; border-radius: 6px; border: none; }
+  #onlineMenu .row { display: flex; gap: 8px; align-items: center; justify-content: center; }
+  #roomCodeDisplay { font-size: 24px; color: #ff0; letter-spacing: 4px; margin-top: 6px; }
+  #onlineStatus { color: #afa; font-size: 14px; min-height: 20px; margin-top: 8px; text-align: center; }
+  #backBtn { margin-top: 8px; padding: 6px 20px; background: #555; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
 </style>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 </head>
 <body>
 <div id="ui">← → 移動 | スペース/↑ ジャンプ | Z キック | X オーバーヘッドキック</div>
@@ -60,7 +72,22 @@
     <p>X ：オーバーヘッドキック（ジャンプ中に頭上から蹴り下ろす）</p>
   </div>
   <p style="color:#8f8">先に5点取ったほうが勝ち！</p>
-  <button id="startBtn">ゲームスタート</button>
+
+  <div id="modeSelect">
+    <button class="mode-btn" id="cpuBtn">CPU対戦</button>
+    <button class="mode-btn" id="onlineModeBtn">通信対戦</button>
+  </div>
+
+  <div id="onlineMenu" style="display:none;">
+    <button class="mode-btn" id="createRoomBtn">部屋を作る（4桁ID発行）</button>
+    <div id="roomCodeDisplay"></div>
+    <div class="row">
+      <input id="joinRoomInput" maxlength="4" inputmode="numeric" placeholder="4桁ID">
+      <button class="mode-btn" id="joinRoomBtn">部屋に入る</button>
+    </div>
+    <div id="onlineStatus"></div>
+    <button id="backBtn">戻る</button>
+  </div>
 </div>
 
 <div id="touchControls">
@@ -88,6 +115,23 @@ const PLAYER_W = 28, PLAYER_H = 52;
 const BALL_R = 14;
 const WIN_SCORE = 5;
 
+// ── Firebase設定 ──────────────────────────────────
+// ★ 自分のFirebaseプロジェクトの設定値に書き換えてください
+// (Firebaseコンソール → プロジェクトの設定 → 全般 → マイアプリ → SDKの構成)
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+  projectId: "YOUR_PROJECT_ID",
+};
+let db = null;
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+} catch (e) {
+  console.warn('Firebase未設定: 通信対戦は利用できません', e);
+}
+
 // ── 状態 ──────────────────────────────────────────
 let keys = {};
 let score = { p: 0, cpu: 0 };
@@ -96,6 +140,13 @@ let gameState = 'start'; // start / play / point / gameover
 let pointMsg = '';
 let pointTimer = 0;
 let stars = [];
+
+// ── 通信対戦 ──────────────────────────────────────
+let mode = 'cpu'; // 'cpu' | 'host' | 'guest'
+let roomRef = null;
+let remoteInput = { left:false, right:false, jump:false, down:false, kick:false, overhead:false };
+let remoteHostState = null;
+let netTimer = 0;
 
 // ── 星 ────────────────────────────────────────────
 for (let i = 0; i < 120; i++) {
@@ -141,6 +192,17 @@ document.addEventListener('keydown', e => {
   if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
 });
 document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+function localInput() {
+  return {
+    left: !!keys['ArrowLeft'],
+    right: !!keys['ArrowRight'],
+    jump: !!(keys['Space'] || keys['ArrowUp']),
+    down: !!keys['ArrowDown'],
+    kick: !!keys['KeyZ'],
+    overhead: !!keys['KeyX'],
+  };
+}
 
 // ── タッチ操作 ────────────────────────────────────
 function bindTouchButton(id, code) {
@@ -241,7 +303,7 @@ function addEffect(x, y, color, type) {
 }
 
 // ── 物理 ──────────────────────────────────────────
-function updateBall() {
+function updateBall(authoritative) {
   ball.vy += GRAVITY * SPEED_SCALE;
   ball.spin *= 0.97;
   ball.vx *= 0.995;
@@ -275,8 +337,8 @@ function updateBall() {
     else { ball.vy *= -0.6; ball.y = NET_TOP - BALL_R; }
   }
 
-  // 得点判定
-  if (ball.y + BALL_R >= GROUND && gameState === 'play') {
+  // 得点判定（ホスト/シングルプレイのみ判定する）
+  if (authoritative && ball.y + BALL_R >= GROUND && gameState === 'play') {
     if (ball.x < NET_X) {
       score.cpu++;
       showPoint('CPUの得点！', score.cpu >= WIN_SCORE ? 'gameover' : 'point');
@@ -287,23 +349,23 @@ function updateBall() {
   }
 }
 
-function updatePlayer(ent) {
+function updatePlayer(ent, input) {
   // 横移動
   ent.vy += GRAVITY * SPEED_SCALE;
 
-  if (ent.isPlayer) {
-    if (keys['ArrowLeft'])  { ent.vx = -13.5; ent.facing = -1; }
-    else if (keys['ArrowRight']) { ent.vx = 13.5; ent.facing = 1; }
+  if (input) {
+    if (input.left)  { ent.vx = -13.5; ent.facing = -1; }
+    else if (input.right) { ent.vx = 13.5; ent.facing = 1; }
     else ent.vx *= 0.7;
 
-    if ((keys['Space'] || keys['ArrowUp']) && ent.onGround) {
+    if (input.jump && ent.onGround) {
       ent.vy = -11.5; ent.onGround = false;
     }
-    if (keys['ArrowDown'] && !ent.onGround) {
+    if (input.down && !ent.onGround) {
       ent.vy = 18; // 急降下（上昇中でも即下降）
     }
-    if (keys['KeyZ'] && ent.kickCooldown <= 0) doKick(ent);
-    if (keys['KeyX'] && ent.kickCooldown <= 0) doOverhead(ent);
+    if (input.kick && ent.kickCooldown <= 0) doKick(ent);
+    if (input.overhead && ent.kickCooldown <= 0) doOverhead(ent);
   } else {
     cpuAI();
   }
@@ -620,6 +682,11 @@ function drawOverlay() {
 }
 
 // ── メインループ ──────────────────────────────────
+function updateEffects() {
+  effects = effects.filter(e => e.life-- > 0);
+  effects.forEach(e => { e.x += e.vx; e.y += e.vy; e.vx *= 0.92; e.vy *= 0.92; });
+}
+
 let lastTime = 0;
 function gameLoop(ts) {
   requestAnimationFrame(gameLoop);
@@ -630,22 +697,89 @@ function gameLoop(ts) {
   drawBackground();
   drawNet();
 
-  if (gameState === 'play') {
-    updatePlayer(player);
-    updatePlayer(cpu);
-    updateBall();
-    effects = effects.filter(e => e.life-- > 0);
-    effects.forEach(e => { e.x += e.vx; e.y += e.vy; e.vx *= 0.92; e.vy *= 0.92; });
-  } else if (gameState === 'point') {
-    pointTimer--;
-    if (pointTimer <= 0) resetAfterPoint();
-  } else if (gameState === 'gameover') {
-    if (keys['Space'] && pointTimer <= 0) {
-      score = { p: 0, cpu: 0 };
-      resetEntities();
-      gameState = 'play';
+  if (mode === 'cpu') {
+    if (gameState === 'play') {
+      updatePlayer(player, localInput());
+      updatePlayer(cpu, null);
+      updateBall(true);
+      updateEffects();
+    } else if (gameState === 'point') {
+      pointTimer--;
+      if (pointTimer <= 0) resetAfterPoint();
+    } else if (gameState === 'gameover') {
+      if (keys['Space'] && pointTimer <= 0) {
+        score = { p: 0, cpu: 0 };
+        resetEntities();
+        gameState = 'play';
+      }
+      pointTimer = Math.max(0, pointTimer - 1);
     }
-    pointTimer = Math.max(0, pointTimer - 1);
+  } else if (mode === 'host') {
+    if (gameState === 'play') {
+      updatePlayer(player, localInput());
+      updatePlayer(cpu, remoteInput);
+      updateBall(true);
+      updateEffects();
+    } else if (gameState === 'point') {
+      pointTimer--;
+      if (pointTimer <= 0) resetAfterPoint();
+    } else if (gameState === 'gameover') {
+      if (localInput().jump && pointTimer <= 0) {
+        score = { p: 0, cpu: 0 };
+        resetEntities();
+        gameState = 'play';
+      }
+      pointTimer = Math.max(0, pointTimer - 1);
+    }
+    netTimer++;
+    if (roomRef) {
+      if (netTimer % 2 === 0) roomRef.child('hostInput').set(localInput());
+      if (netTimer % 3 === 0) {
+        roomRef.child('hostState').set({
+          ball: { x: ball.x, y: ball.y, vx: ball.vx, vy: ball.vy, spin: ball.spin },
+          score, gameState, pointMsg, pointTimer,
+          player: {
+            x: player.x, y: player.y, facing: player.facing, limbAnim: player.limbAnim,
+            onGround: player.onGround, overheadState: player.overheadState, kickEffect: player.kickEffect,
+          },
+        });
+      }
+    }
+  } else if (mode === 'guest') {
+    const wasGameState = gameState;
+    if (gameState === 'play') {
+      updatePlayer(cpu, localInput());
+      updatePlayer(player, remoteInput);
+      updateBall(false);
+      updateEffects();
+    }
+    netTimer++;
+    if (roomRef && netTimer % 2 === 0) roomRef.child('guestInput').set(localInput());
+
+    if (remoteHostState) {
+      score = remoteHostState.score;
+      gameState = remoteHostState.gameState;
+      pointMsg = remoteHostState.pointMsg;
+      pointTimer = remoteHostState.pointTimer;
+
+      ball.x = remoteHostState.ball.x; ball.y = remoteHostState.ball.y;
+      ball.vx = remoteHostState.ball.vx; ball.vy = remoteHostState.ball.vy;
+      ball.spin = remoteHostState.ball.spin;
+
+      player.x = remoteHostState.player.x; player.y = remoteHostState.player.y;
+      player.facing = remoteHostState.player.facing;
+      player.limbAnim = remoteHostState.player.limbAnim;
+      player.onGround = remoteHostState.player.onGround;
+      player.overheadState = remoteHostState.player.overheadState;
+      player.kickEffect = remoteHostState.player.kickEffect;
+
+      if (wasGameState !== 'play' && gameState === 'play') {
+        // ホストが得点後にリセットしたのでゲスト側の自キャラもリセット
+        cpu.x = W * 0.75; cpu.y = GROUND; cpu.vx = 0; cpu.vy = 0; cpu.onGround = true;
+        ball.trail = [];
+        effects = [];
+      }
+    }
   }
 
   drawEffects();
@@ -656,13 +790,89 @@ function gameLoop(ts) {
   drawOverlay();
 }
 
-// ── スタート ──────────────────────────────────────
-document.getElementById('startBtn').addEventListener('click', () => {
+// ── スタート（CPU対戦） ───────────────────────────
+document.getElementById('cpuBtn').addEventListener('click', () => {
   document.getElementById('startScreen').style.display = 'none';
+  mode = 'cpu';
   resetEntities();
   gameState = 'play';
   requestAnimationFrame(gameLoop);
 });
+
+// ── 通信対戦メニュー ──────────────────────────────
+document.getElementById('onlineModeBtn').addEventListener('click', () => {
+  if (!db) {
+    alert('通信対戦はFirebaseの設定が必要です。');
+    return;
+  }
+  document.getElementById('modeSelect').style.display = 'none';
+  document.getElementById('onlineMenu').style.display = 'flex';
+});
+
+document.getElementById('backBtn').addEventListener('click', () => {
+  document.getElementById('onlineMenu').style.display = 'none';
+  document.getElementById('modeSelect').style.display = 'flex';
+  document.getElementById('onlineStatus').textContent = '';
+  document.getElementById('roomCodeDisplay').textContent = '';
+});
+
+document.getElementById('createRoomBtn').addEventListener('click', () => {
+  const roomId = String(Math.floor(1000 + Math.random() * 9000));
+  roomRef = db.ref('rooms/' + roomId);
+  roomRef.set({ createdAt: Date.now(), guestJoined: false });
+  roomRef.onDisconnect().remove();
+
+  document.getElementById('roomCodeDisplay').textContent = 'ルームID: ' + roomId;
+  document.getElementById('onlineStatus').textContent = '相手の参加を待っています...';
+  mode = 'host';
+
+  roomRef.child('guestJoined').on('value', snap => {
+    if (snap.val() === true) {
+      roomRef.child('guestJoined').off();
+      startOnlineGame();
+    }
+  });
+});
+
+document.getElementById('joinRoomBtn').addEventListener('click', () => {
+  const id = document.getElementById('joinRoomInput').value.trim();
+  if (!/^\d{4}$/.test(id)) {
+    document.getElementById('onlineStatus').textContent = '4桁の数字を入力してください';
+    return;
+  }
+  const ref = db.ref('rooms/' + id);
+  ref.once('value', snap => {
+    if (!snap.exists()) {
+      document.getElementById('onlineStatus').textContent = 'その部屋は見つかりません';
+      return;
+    }
+    roomRef = ref;
+    mode = 'guest';
+    roomRef.update({ guestJoined: true });
+    startOnlineGame();
+  });
+});
+
+function startOnlineGame() {
+  document.getElementById('startScreen').style.display = 'none';
+  resetEntities();
+  gameState = 'play';
+
+  if (mode === 'host') {
+    roomRef.child('guestInput').on('value', snap => {
+      remoteInput = snap.val() || remoteInput;
+    });
+  } else {
+    roomRef.child('hostInput').on('value', snap => {
+      remoteInput = snap.val() || remoteInput;
+    });
+    roomRef.child('hostState').on('value', snap => {
+      remoteHostState = snap.val();
+    });
+  }
+
+  requestAnimationFrame(gameLoop);
+}
 </script>
 </body>
 </html>
