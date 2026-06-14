@@ -32,7 +32,8 @@
   @media (pointer: coarse) {
     #touchControls { display: block; }
     #ui { display: none; }
-    body { justify-content: flex-start; padding-top: max(28px, env(safe-area-inset-top, 0px) + 12px); }
+    body { justify-content: flex-start; padding-top: max(70px, env(safe-area-inset-top, 0px) + 56px); }
+    #gameCanvas { max-height: 68vh; }
   }
   #startScreen {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -276,7 +277,6 @@ function doKick(ent) {
     ball.spin = dir > 0 ? 6 : -6;
     ent.kickCooldown = 20;
     ent.kickEffect = 10;
-    ent.justKicked = true;
     addEffect(ball.x, ball.y, '#ff0', 'kick');
   }
 }
@@ -293,7 +293,6 @@ function doOverhead(ent) {
     ent.overheadState = 2;
     ent.overheadTimer = 18;
     ent.kickEffect = 14;
-    ent.justKicked = true;
     addEffect(ball.x, ball.y, '#f0f', 'overhead');
   }
 }
@@ -359,38 +358,9 @@ function updateBall(authoritative) {
   }
 }
 
-// プレイヤーとボールの接触判定（キック以外でも触れたら反応する）
-function ballPlayerCollision(ent) {
-  if (ent.justKicked) return;
-  const cx = Math.max(ent.x - ent.width / 2, Math.min(ball.x, ent.x + ent.width / 2));
-  const cy = Math.max(ent.y - ent.height, Math.min(ball.y, ent.y));
-  const dx = ball.x - cx;
-  const dy = ball.y - cy;
-  const distSq = dx * dx + dy * dy;
-  if (distSq < BALL_R * BALL_R) {
-    const dist = Math.sqrt(distSq) || 1;
-    const nx = dx / dist;
-    const ny = dy / dist;
-    const overlap = BALL_R - dist;
-    ball.x += nx * overlap;
-    ball.y += ny * overlap;
-
-    // ボールが選手に向かって来ている時だけ跳ね返す（蹴った直後にボールが
-    // 離れていく速度を上書きしてしまわないようにする）
-    const approachSpeed = ball.vx * nx + ball.vy * ny;
-    if (approachSpeed < 0) {
-      const pushSpeed = 4.5;
-      ball.vx = nx * pushSpeed + ent.vx * 0.4;
-      ball.vy = ny * pushSpeed + ent.vy * 0.4 - 1.5;
-      ball.spin += ent.vx * 0.25;
-    }
-  }
-}
-
 function updatePlayer(ent, input) {
   // 横移動
   ent.vy += GRAVITY * SPEED_SCALE;
-  ent.justKicked = false;
 
   if (input) {
     if (input.left)  { ent.vx = -13.5; ent.facing = -1; }
@@ -747,8 +717,6 @@ function gameLoop(ts) {
     if (gameState === 'play') {
       updatePlayer(player, localInput());
       updatePlayer(cpu, null);
-      ballPlayerCollision(player);
-      ballPlayerCollision(cpu);
       updateBall(true);
       updateEffects();
     } else if (gameState === 'point') {
@@ -766,8 +734,6 @@ function gameLoop(ts) {
     if (gameState === 'play') {
       updatePlayer(player, localInput());
       updatePlayer(cpu, remoteInput);
-      ballPlayerCollision(player);
-      ballPlayerCollision(cpu);
       updateBall(true);
       updateEffects();
     } else if (gameState === 'point') {
