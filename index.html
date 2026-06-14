@@ -87,8 +87,8 @@ function makePlayer(x, isPlayer) {
 
 function makeBall() {
   return {
-    x: W / 4, y: GROUND - 100,
-    vx: 2, vy: -3,
+    x: W / 4, y: GROUND - 200,
+    vx: 0.4, vy: -0.6,
     spin: 0, trail: [],
   };
 }
@@ -144,7 +144,7 @@ function doKick(ent) {
   const dx = ball.x - ent.x;
   const dy = ball.y - ent.y;
   if (Math.abs(dx) < 60 && Math.abs(dy) < 60) {
-    const spd = ent.isPlayer ? 9.5 : 8;
+    const spd = ent.isPlayer ? 1.9 : 1.6;
     ball.vx = (dx > 0 ? 1 : -1) * spd * 0.7 + (ent.isPlayer ? 0.5 : -0.5);
     ball.vy = -spd * 0.85;
     ball.spin = dx > 0 ? 6 : -6;
@@ -159,8 +159,8 @@ function doOverhead(ent) {
   const dx = ball.x - ent.x;
   const dy = ball.y - ent.y;
   if (Math.abs(dx) < 70 && Math.abs(dy) < 80) {
-    ball.vx = (ent.isPlayer ? 1 : -1) * 7;
-    ball.vy = 6.5;  // 鋭角落下
+    ball.vx = (ent.isPlayer ? 1 : -1) * 1.4;
+    ball.vy = 1.3;  // 鋭角落下
     ball.spin = ent.isPlayer ? -8 : 8;
     ent.kickCooldown = 25;
     ent.overheadState = 2;
@@ -280,8 +280,8 @@ function showPoint(msg, next) {
 function resetAfterPoint() {
   player.x = W * 0.25; player.y = GROUND; player.vx = 0; player.vy = 0; player.onGround = true;
   cpu.x = W * 0.75; cpu.y = GROUND; cpu.vx = 0; cpu.vy = 0; cpu.onGround = true;
-  ball.x = W / 4; ball.y = GROUND - 120;
-  ball.vx = 2; ball.vy = -4; ball.spin = 0; ball.trail = [];
+  ball.x = W / 4; ball.y = GROUND - 240;
+  ball.vx = 0.4; ball.vy = -0.8; ball.spin = 0; ball.trail = [];
   effects = [];
   gameState = 'play';
 }
