@@ -247,6 +247,9 @@ function updatePlayer(ent) {
     if ((keys['Space'] || keys['ArrowUp']) && ent.onGround) {
       ent.vy = -11.5; ent.onGround = false;
     }
+    if (keys['ArrowDown'] && !ent.onGround && ent.vy > 0) {
+      ent.vy = 18; // 急降下
+    }
     if (keys['KeyZ'] && ent.kickCooldown <= 0) doKick(ent);
     if (keys['KeyX'] && ent.kickCooldown <= 0) doOverhead(ent);
   } else {
