@@ -275,6 +275,7 @@ function doKick(ent) {
     ball.spin = dx > 0 ? 6 : -6;
     ent.kickCooldown = 20;
     ent.kickEffect = 10;
+    ent.justKicked = true;
     addEffect(ball.x, ball.y, '#ff0', 'kick');
   }
 }
@@ -291,6 +292,7 @@ function doOverhead(ent) {
     ent.overheadState = 2;
     ent.overheadTimer = 18;
     ent.kickEffect = 14;
+    ent.justKicked = true;
     addEffect(ball.x, ball.y, '#f0f', 'overhead');
   }
 }
@@ -358,6 +360,7 @@ function updateBall(authoritative) {
 
 // プレイヤーとボールの接触判定（キック以外でも触れたら反応する）
 function ballPlayerCollision(ent) {
+  if (ent.justKicked) return;
   const cx = Math.max(ent.x - ent.width / 2, Math.min(ball.x, ent.x + ent.width / 2));
   const cy = Math.max(ent.y - ent.height, Math.min(ball.y, ent.y));
   const dx = ball.x - cx;
@@ -381,6 +384,7 @@ function ballPlayerCollision(ent) {
 function updatePlayer(ent, input) {
   // 横移動
   ent.vy += GRAVITY * SPEED_SCALE;
+  ent.justKicked = false;
 
   if (input) {
     if (input.left)  { ent.vx = -13.5; ent.facing = -1; }
