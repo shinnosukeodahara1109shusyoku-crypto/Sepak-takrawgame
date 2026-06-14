@@ -106,6 +106,30 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const W = canvas.width, H = canvas.height;
 
+// ── サウンド ──────────────────────────────────────
+let audioCtx = null;
+function playAttackSound() {
+  if (!audioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    audioCtx = new AC();
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.15);
+  gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.18);
+}
+
+
 // ── 定数 ──────────────────────────────────────────
 const GRAVITY = 0.45;
 const SPEED_SCALE = 0.2; // 全体のゲームスピード（1 = 通常、0.2 = 5倍ゆっくり）
@@ -294,6 +318,7 @@ function doOverhead(ent) {
     ent.overheadTimer = 18;
     ent.kickEffect = 14;
     addEffect(ball.x, ball.y, '#f0f', 'overhead');
+    playAttackSound();
   }
 }
 
