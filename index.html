@@ -611,7 +611,7 @@ function doOverhead(ent) {
     ball.spin = ent.isPlayer ? -8 : 8;
     ent.kickCooldown = 25;
     ent.overheadState = 2;
-    ent.overheadTimer = 18;
+    ent.overheadTimer = 24; // 体勢を保持する時間を0.1秒分延長
     ent.kickEffect = 14;
     addEffect(ball.x, ball.y, '#f0f', 'overhead');
     playAttackSound();
@@ -869,7 +869,7 @@ function drawPlayer(ent) {
 
   const isOverhead = ent.overheadState === 2;
   const scale = ent.facing;
-  ctx.scale(scale, 1);
+  ctx.scale(scale * 2, 2); // キャラクターを2倍の大きさで描画
 
   // オーバーヘッド時は体を逆転（頭が下、足が上のシザーズキック姿勢）
   if (isOverhead) {
