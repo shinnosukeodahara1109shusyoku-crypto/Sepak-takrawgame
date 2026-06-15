@@ -46,6 +46,8 @@
     align-items: center; justify-content: center; color: #fff;
   }
   #startScreen h1 { font-size: 48px; color: #f90; text-shadow: 0 0 20px #f90, 0 0 40px #f60; margin-bottom: 10px; }
+  #startScreen h1#titleText { opacity: 0; transition: opacity 2.2s ease-in; }
+  #startScreen h1#titleText.title-show { opacity: 1; }
   #startScreen p { font-size: 16px; color: #aaf; margin: 4px 0; }
   #startScreen .controls { margin: 20px 0; background: rgba(255,255,255,0.05); padding: 16px 28px; border-radius: 10px; }
   #startScreen .controls h3 { color: #ff9; margin-bottom: 8px; }
@@ -211,7 +213,7 @@
 <canvas id="gameCanvas" width="800" height="480"></canvas>
 
 <div id="startScreen">
-  <h1>セパタクロー</h1>
+  <h1 id="titleText">セパタクロー</h1>
   <div class="controls">
     <h3>操作方法</h3>
     <p>← → ：移動</p>
@@ -335,8 +337,20 @@ function playAttackSound() {
   osc.stop(audioCtx.currentTime + 0.18);
 }
 
-// ── 試合終了ファンファーレ / ガチャワクワク音 ──────
+// ── 試合終了ファンファーレ / ガチャワクワク音 / タイトルボイス ──
 function playSynthesizedSound(type) {
+  if (type === 'title_voice') {
+    if ('speechSynthesis' in window) {
+      const uttr = new SpeechSynthesisUtterance();
+      uttr.text = 'Seh, Paa.';
+      uttr.lang = 'en-US';
+      uttr.pitch = 1.4;
+      uttr.rate = 0.8;
+      window.speechSynthesis.speak(uttr);
+    }
+    return;
+  }
+
   if (!audioCtx) {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
@@ -1588,6 +1602,18 @@ document.getElementById('collectionBtn').addEventListener('click', () => {
 document.getElementById('collectionBackBtn').addEventListener('click', () => {
   document.getElementById('collectionScreen').style.display = 'none';
 });
+
+// ── オープニング演出（タイトルのフェードイン + ボイス） ──
+let titleOpeningPlayed = false;
+function playTitleOpening() {
+  if (titleOpeningPlayed) return;
+  titleOpeningPlayed = true;
+  document.getElementById('titleText').classList.add('title-show');
+  playSynthesizedSound('title_voice');
+}
+playTitleOpening();
+document.addEventListener('pointerdown', playTitleOpening, { once: true });
+document.addEventListener('keydown', playTitleOpening, { once: true });
 </script>
 </body>
 </html>
