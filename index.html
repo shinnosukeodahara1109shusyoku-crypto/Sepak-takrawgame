@@ -335,6 +335,7 @@ const NET_TOP = GROUND - NET_H;
 const PLAYER_W = 28, PLAYER_H = 52;
 const BALL_R = 14;
 const WIN_SCORE = 5;
+const KICK_HOLD_FRAMES = 12; // 振り上げた足を下ろさずに保持する追加フレーム数（約0.2秒）
 
 // ── Firebase設定 ──────────────────────────────────
 // ★ 自分のFirebaseプロジェクトの設定値に書き換えてください
@@ -595,7 +596,7 @@ function doKick(ent) {
     ball.vy = -spd * 0.85;
     ball.spin = dir > 0 ? 6 : -6;
     ent.kickCooldown = 20;
-    ent.kickEffect = 10;
+    ent.kickEffect = 10 + KICK_HOLD_FRAMES;
     addEffect(ball.x, ball.y, '#ff0', 'kick');
     playAttackSound();
   }
@@ -611,8 +612,8 @@ function doOverhead(ent) {
     ball.spin = ent.isPlayer ? -8 : 8;
     ent.kickCooldown = 25;
     ent.overheadState = 2;
-    ent.overheadTimer = 24; // 体勢を保持する時間を0.1秒分延長
-    ent.kickEffect = 14;
+    ent.overheadTimer = 24 + KICK_HOLD_FRAMES; // 体勢を保持する時間を延長
+    ent.kickEffect = 14 + KICK_HOLD_FRAMES;
     addEffect(ball.x, ball.y, '#f0f', 'overhead');
     playAttackSound();
   }
@@ -869,7 +870,7 @@ function drawPlayer(ent) {
 
   const isOverhead = ent.overheadState === 2;
   const scale = ent.facing;
-  ctx.scale(scale * 2, 2); // キャラクターを2倍の大きさで描画
+  ctx.scale(scale * 1.4, 1.4); // キャラクターの大きさ（2倍 × 0.7）
 
   // オーバーヘッド時は体をその場で反転（頭が下、足が上のシザーズキック姿勢）
   if (isOverhead) {
@@ -895,8 +896,9 @@ function drawPlayer(ent) {
   const headR = 8;
 
   // キック中（Z/Xどちらでも kickEffect が立つ）の進行度 0→1
+  // kickEffect は KICK_HOLD_FRAMES 分長く設定されており、その間は1のまま保持される
   const kickBase = ent.overheadState === 2 ? 14 : 10;
-  const kickPow = ent.kickEffect > 0 ? ent.kickEffect / kickBase : 0;
+  const kickPow = ent.kickEffect > 0 ? Math.min(1, ent.kickEffect / kickBase) : 0;
 
   const legSwing = ent.onGround ? Math.sin(ent.limbAnim) * 16 : 0;
   const armSwing = ent.onGround ? Math.sin(ent.limbAnim + Math.PI) * 12 : 0;
@@ -908,13 +910,13 @@ function drawPlayer(ent) {
   ctx.fill();
 
   // ── 後ろ脚（軸足） ──
-  const backHip  = kickPow > 0 ? 28 * kickPow : -legSwing;
-  const backKnee = kickPow > 0 ? 18 * kickPow : Math.abs(legSwing) * 0.4;
+  const backHip  = kickPow > 0 ? 40 * kickPow : -legSwing;
+  const backKnee = kickPow > 0 ? 26 * kickPow : Math.abs(legSwing) * 0.4;
   drawLimb(-4, shortsBottomY, backHip, backKnee, 8, 6, sock, sock, shoe, 5, 3);
 
   // ── 前脚（キックする脚：足を大きく振り上げる） ──
-  const frontHip  = kickPow > 0 ? -140 * kickPow : legSwing;
-  const frontKnee = kickPow > 0 ? 80 * kickPow : Math.abs(legSwing) * 0.4;
+  const frontHip  = kickPow > 0 ? -160 * kickPow : legSwing;
+  const frontKnee = kickPow > 0 ? 95 * kickPow : Math.abs(legSwing) * 0.4;
   drawLimb(4, shortsBottomY, frontHip, frontKnee, 8, 6, sock, sock, shoe, 5, 3);
 
   // ── ショーツ ──
