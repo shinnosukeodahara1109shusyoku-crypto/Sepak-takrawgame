@@ -803,31 +803,54 @@ function drawBackground() {
   ctx.beginPath(); ctx.arc(712, 44, 24, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 
-  // コートの地面
-  const grd = ctx.createLinearGradient(0, GROUND, 0, H);
-  grd.addColorStop(0, '#1a3a1a');
-  grd.addColorStop(1, '#0a1e0a');
+  // 観客席（簡易シルエット）
+  ctx.save();
+  for (let i = 0; i < 40; i++) {
+    const sx = (i * 53) % W;
+    const sy = 14 + ((i * 17) % 26);
+    const tone = 30 + (i % 5) * 8;
+    ctx.fillStyle = `rgba(${tone + 40},${tone + 50},${tone + 80},0.5)`;
+    ctx.fillRect(sx, sy, 26, 10);
+  }
+  ctx.restore();
+
+  // コートの地面（ブルーのコートサーフェス）
+  const grd = ctx.createLinearGradient(0, GROUND - 6, 0, H);
+  grd.addColorStop(0, '#2f8fe0');
+  grd.addColorStop(0.15, '#1f6fc4');
+  grd.addColorStop(1, '#0c3a73');
   ctx.fillStyle = grd;
-  ctx.fillRect(0, GROUND, W, H - GROUND);
+  ctx.fillRect(0, GROUND - 6, W, H - (GROUND - 6));
 
-  // コートライン
-  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  // コート外周ライン
+  ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(14, GROUND - 4, W - 28, H - (GROUND - 4) - 6);
+
+  // センターライン（ネット下の境界線）
+  ctx.beginPath();
+  ctx.moveTo(NET_X, GROUND - 4);
+  ctx.lineTo(NET_X, H - 10);
+  ctx.stroke();
+
+  // サービスサークル（センターライン上、左右に半円）
   ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(0, GROUND); ctx.lineTo(W, GROUND); ctx.stroke();
-  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(NET_X, GROUND); ctx.lineTo(NET_X, GROUND + 10); ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+  ctx.beginPath(); ctx.arc(NET_X, H - 10, 26, Math.PI, Math.PI * 2); ctx.stroke();
 
-  // ライン（左右エリア）
-  [80, W - 80, W * 0.25, W * 0.75].forEach(lx => {
-    ctx.strokeStyle = 'rgba(255,255,255,0.07)';
-    ctx.beginPath(); ctx.moveTo(lx, GROUND); ctx.lineTo(lx, H); ctx.stroke();
+  // アタックライン（左右）
+  ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 6]);
+  [NET_X - 110, NET_X + 110].forEach(lx => {
+    ctx.beginPath(); ctx.moveTo(lx, GROUND - 4); ctx.lineTo(lx, H - 10); ctx.stroke();
   });
+  ctx.setLineDash([]);
 
   // コートライト（照明雰囲気）
   [[160, GROUND - 5], [640, GROUND - 5]].forEach(([lx, ly]) => {
     const glow = ctx.createRadialGradient(lx, ly, 0, lx, ly, 180);
-    glow.addColorStop(0, 'rgba(200,230,255,0.07)');
+    glow.addColorStop(0, 'rgba(200,230,255,0.1)');
     glow.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, W, H);
@@ -837,26 +860,35 @@ function drawBackground() {
 // ── 描画：ネット ──────────────────────────────────
 function drawNet() {
   ctx.save();
-  // ポール
-  ctx.fillStyle = '#aaa';
-  ctx.fillRect(NET_X - 3, NET_TOP - 8, 6, NET_H + 8);
 
-  // ネット本体
-  ctx.strokeStyle = 'rgba(200,200,255,0.7)';
+  // ネット本体（メッシュ）
+  const meshW = 5;
+  ctx.fillStyle = 'rgba(20,30,50,0.25)';
+  ctx.fillRect(NET_X - meshW, NET_TOP - 8, meshW * 2, NET_H + 8);
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)';
   ctx.lineWidth = 1;
-  const cols = 12;
+  const cols = 8;
   for (let i = 0; i <= cols; i++) {
-    const nx = NET_X - 3 + (6 / cols) * i;
+    const nx = NET_X - meshW + (meshW * 2 / cols) * i;
     ctx.beginPath(); ctx.moveTo(nx, NET_TOP); ctx.lineTo(nx, GROUND); ctx.stroke();
   }
-  const rows = 8;
+  const rows = 14;
   for (let j = 0; j <= rows; j++) {
     const ny = NET_TOP + (NET_H / rows) * j;
-    ctx.beginPath(); ctx.moveTo(NET_X - 3, ny); ctx.lineTo(NET_X + 3, ny); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(NET_X - meshW, ny); ctx.lineTo(NET_X + meshW, ny); ctx.stroke();
   }
-  // テープ
+
+  // 上部テープ
   ctx.fillStyle = '#fff';
-  ctx.fillRect(NET_X - 4, NET_TOP - 6, 8, 7);
+  ctx.fillRect(NET_X - meshW - 1, NET_TOP - 6, meshW * 2 + 2, 6);
+
+  // ポール（左右に伸びるバー、テープより上に出す）
+  ctx.fillStyle = '#d8d8d8';
+  ctx.fillRect(NET_X - 3, NET_TOP - 22, 6, NET_H + 22);
+  ctx.fillStyle = '#ff5050';
+  ctx.fillRect(NET_X - 3, NET_TOP - 22, 6, 6);
+
   ctx.restore();
 }
 
