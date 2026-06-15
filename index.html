@@ -59,7 +59,7 @@
   #backBtn { margin-top: 8px; padding: 6px 20px; background: #555; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
 
   /* ── ガチャ ── */
-  #gachaScreen, #collectionScreen {
+  #gachaScreen, #collectionScreen, #difficultyScreen {
     position: fixed; inset: 0; z-index: 300;
     background: rgba(0,0,5,0.9);
     display: none; flex-direction: column; align-items: center; justify-content: center;
@@ -238,6 +238,14 @@
     <div id="onlineStatus"></div>
     <button id="backBtn">戻る</button>
   </div>
+</div>
+
+<div id="difficultyScreen">
+  <h2 class="gacha-title">難易度を選択</h2>
+  <button class="mode-btn" id="diffAmateurBtn">アマチュア</button>
+  <button class="mode-btn" id="diffProBtn">プロフェッショナル</button>
+  <button class="mode-btn" id="diffLegendBtn">レジェンド</button>
+  <button class="mode-btn" id="diffBackBtn">戻る</button>
 </div>
 
 <!-- ── 勝利ガチャ ── -->
@@ -466,6 +474,8 @@ document.getElementById('googleLoginBtn').addEventListener('click', () => {
 
 // ── 通信対戦 ──────────────────────────────────────
 let mode = 'cpu'; // 'cpu' | 'host' | 'guest'
+const DIFFICULTY_ATTACK_CHANCE = { amateur: 0.1, professional: 0.5, legend: 1.0 };
+let cpuAttackChance = DIFFICULTY_ATTACK_CHANCE.legend;
 let serveSide = 1; // 1: 自分側からスタート, -1: 相手側からスタート（得点ごとに交互）
 let roomRef = null;
 let remoteInput = { left:false, right:false, jump:false, down:false, kick:false, overhead:false };
@@ -487,6 +497,7 @@ function makePlayer(x, isPlayer) {
     kickCooldown: 0,
     overheadState: 0, // 0=none 1=rising 2=strike
     overheadTimer: 0,
+    attackRoll: 0,
     kickEffect: 0,
     width: PLAYER_W, height: PLAYER_H,
     color: isPlayer ? '#4af' : '#f64',
@@ -571,6 +582,7 @@ function cpuAI() {
     if (Math.abs(cpu.x - ball.x) < 140) {
       cpu.vy = -11;
       cpu.onGround = false;
+      cpu.attackRoll = Math.random();
     }
   }
 
@@ -580,7 +592,8 @@ function cpuAI() {
     const dy = Math.abs(cpu.y - ball.y);
     // オーバーヘッドアタックはネットを越えられるネット付近のときのみ
     // （ネットから遠い位置で打つと自陣側に叩き込んでしまうため）
-    if (!cpu.onGround && dy < 60 && dx < 70 && nearNet) {
+    // さらに難易度に応じた確率でのみアタックを行い、それ以外は通常キック
+    if (!cpu.onGround && dy < 60 && dx < 70 && nearNet && cpu.attackRoll < cpuAttackChance) {
       doOverhead(cpu);
     } else if (dx < 65 && dy < 65) {
       doKick(cpu);
@@ -1207,16 +1220,31 @@ function gameLoop(ts) {
   drawOverlay();
 }
 
-// ── スタート（CPU対戦） ───────────────────────────
+// ── スタート（CPU対戦：難易度選択） ───────────────
 document.getElementById('cpuBtn').addEventListener('click', () => {
   document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('difficultyScreen').style.display = 'flex';
+});
+
+document.getElementById('diffBackBtn').addEventListener('click', () => {
+  document.getElementById('difficultyScreen').style.display = 'none';
+  document.getElementById('startScreen').style.display = 'flex';
+});
+
+function startCpuGame(attackChance) {
+  cpuAttackChance = attackChance;
+  document.getElementById('difficultyScreen').style.display = 'none';
   mode = 'cpu';
   score = { p: 0, cpu: 0 };
   gachaShown = false;
   resetEntities();
   gameState = 'play';
   requestAnimationFrame(gameLoop);
-});
+}
+
+document.getElementById('diffAmateurBtn').addEventListener('click', () => startCpuGame(DIFFICULTY_ATTACK_CHANCE.amateur));
+document.getElementById('diffProBtn').addEventListener('click', () => startCpuGame(DIFFICULTY_ATTACK_CHANCE.professional));
+document.getElementById('diffLegendBtn').addEventListener('click', () => startCpuGame(DIFFICULTY_ATTACK_CHANCE.legend));
 
 // ── 通信対戦メニュー ──────────────────────────────
 document.getElementById('onlineModeBtn').addEventListener('click', () => {
