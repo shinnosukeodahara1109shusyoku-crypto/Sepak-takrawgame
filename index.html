@@ -908,13 +908,13 @@ function drawPlayer(ent) {
   ctx.fill();
 
   // ── 後ろ脚（軸足） ──
-  const backHip  = kickPow > 0 ? 18 * kickPow : -legSwing;
-  const backKnee = kickPow > 0 ? 12 * kickPow : Math.abs(legSwing) * 0.4;
+  const backHip  = kickPow > 0 ? 28 * kickPow : -legSwing;
+  const backKnee = kickPow > 0 ? 18 * kickPow : Math.abs(legSwing) * 0.4;
   drawLimb(-4, shortsBottomY, backHip, backKnee, 8, 6, sock, sock, shoe, 5, 3);
 
-  // ── 前脚（キックする脚：足を振り上げる） ──
-  const frontHip  = kickPow > 0 ? -100 * kickPow : legSwing;
-  const frontKnee = kickPow > 0 ? 55 * kickPow : Math.abs(legSwing) * 0.4;
+  // ── 前脚（キックする脚：足を大きく振り上げる） ──
+  const frontHip  = kickPow > 0 ? -140 * kickPow : legSwing;
+  const frontKnee = kickPow > 0 ? 80 * kickPow : Math.abs(legSwing) * 0.4;
   drawLimb(4, shortsBottomY, frontHip, frontKnee, 8, 6, sock, sock, shoe, 5, 3);
 
   // ── ショーツ ──
