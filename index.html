@@ -26,8 +26,9 @@
   #btnRight  { left: 86px;  bottom: 86px; }
   #btnJump   { left: 51px;  bottom: 156px; }
   #btnDown   { left: 51px;  bottom: 16px; }
-  #btnKick   { right: 96px;  bottom: 16px; width: 70px; height: 70px; font-size: 18px; }
-  #btnOver   { right: 16px;  bottom: 16px; width: 70px; height: 70px; font-size: 13px; }
+  #btnKick   { right: 16px;  bottom: 16px; width: 70px; height: 70px; font-size: 18px; }
+  #btnOver   { right: 16px;  bottom: 96px; width: 70px; height: 70px; font-size: 13px; }
+  #btnJumpR  { right: 96px; bottom: 16px; width: 70px; height: 70px; font-size: 14px; }
 
   @media (pointer: coarse) {
     #touchControls { display: block; }
@@ -290,6 +291,7 @@
   <div class="touch-btn" id="btnJump">▲</div>
   <div class="touch-btn" id="btnKick">Z<br>キック</div>
   <div class="touch-btn" id="btnOver">X<br>アタック</div>
+  <div class="touch-btn" id="btnJumpR">ジャンプ</div>
 </div>
 
 <script>
@@ -546,6 +548,7 @@ bindTouchButton('btnDown', 'ArrowDown');
 bindTouchButton('btnJump', 'Space');
 bindTouchButton('btnKick', 'KeyZ');
 bindTouchButton('btnOver', 'KeyX');
+bindTouchButton('btnJumpR', 'Space');
 
 // ── CPU AI ────────────────────────────────────────
 function cpuAI() {
