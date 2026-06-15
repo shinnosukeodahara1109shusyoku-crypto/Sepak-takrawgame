@@ -133,6 +133,7 @@ function playAttackSound() {
 // ── 定数 ──────────────────────────────────────────
 const GRAVITY = 0.45;
 const SPEED_SCALE = 0.2; // 全体のゲームスピード（1 = 通常、0.2 = 5倍ゆっくり）
+const BALL_SPEED_SCALE = SPEED_SCALE * 1.5; // ボールのみ1.5倍速く動かす
 const GROUND = H - 60;
 const NET_X = W / 2;
 const NET_H = 100;
@@ -340,7 +341,7 @@ function addEffect(x, y, color, type) {
 
 // ── 物理 ──────────────────────────────────────────
 function updateBall(authoritative) {
-  ball.vy += GRAVITY * SPEED_SCALE;
+  ball.vy += GRAVITY * BALL_SPEED_SCALE;
   ball.spin *= 0.97;
   ball.vx *= 0.995;
 
@@ -348,8 +349,8 @@ function updateBall(authoritative) {
   ball.trail.push({ x: ball.x, y: ball.y });
   if (ball.trail.length > 12) ball.trail.shift();
 
-  ball.x += ball.vx * SPEED_SCALE;
-  ball.y += ball.vy * SPEED_SCALE;
+  ball.x += ball.vx * BALL_SPEED_SCALE;
+  ball.y += ball.vy * BALL_SPEED_SCALE;
 
   // 地面
   if (ball.y + BALL_R >= GROUND) {
