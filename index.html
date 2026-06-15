@@ -67,11 +67,6 @@
   }
   .gacha-title { font-size: 28px; color: #ff0; text-shadow: 0 0 12px #f80, 0 0 24px #f60; }
 
-  #gachaCloseBtn {
-    position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
-    z-index: 330;
-  }
-
   .gacha-machine { position: relative; width: clamp(170px, 50vw, 240px); aspect-ratio: 220 / 300; }
   .gacha-lid {
     position: absolute; top: 0; left: 8%; width: 84%; height: 9%;
@@ -246,8 +241,8 @@
 
 <!-- ── 勝利ガチャ ── -->
 <div id="gachaScreen">
-  <button class="mode-btn" id="gachaCloseBtn" style="display:none;">タイトルへ戻る</button>
   <h2 class="gacha-title">勝利ボーナスガチャ！</h2>
+  <button class="mode-btn" id="gachaCloseBtn" style="display:none;">タイトルへ戻る</button>
   <div class="gacha-machine">
     <div class="gacha-lid"></div>
     <div class="gacha-dome">
