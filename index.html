@@ -814,38 +814,48 @@ function drawBackground() {
   }
   ctx.restore();
 
-  // コートの地面（ブルーのコートサーフェス）
-  const grd = ctx.createLinearGradient(0, GROUND - 6, 0, H);
-  grd.addColorStop(0, '#2f8fe0');
-  grd.addColorStop(0.15, '#1f6fc4');
-  grd.addColorStop(1, '#0c3a73');
+  // コートの地面（緑のコートサーフェス。ネット側から手前にかけて暗くなるグラデーションで立体感を表現）
+  const floorTop = GROUND - 6;
+  const grd = ctx.createLinearGradient(0, floorTop, 0, H);
+  grd.addColorStop(0, '#3f9a4e');
+  grd.addColorStop(1, '#1c4424');
   ctx.fillStyle = grd;
-  ctx.fillRect(0, GROUND - 6, W, H - (GROUND - 6));
+  ctx.fillRect(0, floorTop, W, H - floorTop);
 
-  // コート外周ライン
-  ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(14, GROUND - 4, W - 28, H - (GROUND - 4) - 6);
+  // 床の質感（うっすらとしたグリッド線でマット/体育館フロアっぽい質感を出す）
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 1;
+  for (let gy = floorTop + 6; gy < H; gy += 6) {
+    ctx.beginPath(); ctx.moveTo(0, gy + 0.5); ctx.lineTo(W, gy + 0.5); ctx.stroke();
+  }
+  for (let gx = 0; gx < W; gx += 40) {
+    ctx.beginPath(); ctx.moveTo(gx + 0.5, floorTop); ctx.lineTo(gx + 0.5, H); ctx.stroke();
+  }
+  ctx.restore();
+
+  // コート外周ライン（うっすらとした白線）
+  ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(14, floorTop + 2, W - 28, H - (floorTop + 2) - 6);
 
   // センターライン（ネット下の境界線）
   ctx.beginPath();
-  ctx.moveTo(NET_X, GROUND - 4);
-  ctx.lineTo(NET_X, H - 10);
+  ctx.moveTo(NET_X, floorTop + 2);
+  ctx.lineTo(NET_X, H - 6);
   ctx.stroke();
 
-  // サービスサークル（センターライン上、左右に半円）
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = 'rgba(255,255,255,0.7)';
-  ctx.beginPath(); ctx.arc(NET_X, H - 10, 26, Math.PI, Math.PI * 2); ctx.stroke();
+  // クォーターサークル（ネット根元、左右に扇形のライン）
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = 1.5;
+  const quarterR = 36;
+  ctx.beginPath(); ctx.arc(NET_X, floorTop + 2, quarterR, 0, Math.PI / 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(NET_X, floorTop + 2, quarterR, Math.PI / 2, Math.PI); ctx.stroke();
 
-  // アタックライン（左右）
-  ctx.strokeStyle = 'rgba(255,255,255,0.45)';
-  ctx.lineWidth = 2;
-  ctx.setLineDash([6, 6]);
-  [NET_X - 110, NET_X + 110].forEach(lx => {
-    ctx.beginPath(); ctx.moveTo(lx, GROUND - 4); ctx.lineTo(lx, H - 10); ctx.stroke();
+  // サービスサークル（各コート中央付近の小円）
+  [NET_X - 130, NET_X + 130].forEach(cx => {
+    ctx.beginPath(); ctx.arc(cx, H - 14, 13, 0, Math.PI * 2); ctx.stroke();
   });
-  ctx.setLineDash([]);
 
   // コートライト（照明雰囲気）
   [[160, GROUND - 5], [640, GROUND - 5]].forEach(([lx, ly]) => {
