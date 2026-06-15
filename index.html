@@ -56,6 +56,101 @@
   #roomCodeDisplay { font-size: 24px; color: #ff0; letter-spacing: 4px; margin-top: 6px; }
   #onlineStatus { color: #afa; font-size: 14px; min-height: 20px; margin-top: 8px; text-align: center; }
   #backBtn { margin-top: 8px; padding: 6px 20px; background: #555; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+
+  /* ── ガチャ ── */
+  #gachaScreen, #collectionScreen {
+    position: fixed; inset: 0; z-index: 300;
+    background: rgba(0,0,5,0.9);
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    color: #fff; gap: 18px; padding: 16px; text-align: center;
+  }
+  .gacha-title { font-size: 28px; color: #ff0; text-shadow: 0 0 12px #f80, 0 0 24px #f60; }
+
+  .gacha-machine { position: relative; width: clamp(170px, 50vw, 240px); aspect-ratio: 220 / 300; }
+  .gacha-lid {
+    position: absolute; top: 0; left: 8%; width: 84%; height: 9%;
+    background: #e74c3c; border-radius: 14px 14px 0 0;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.25) inset;
+  }
+  .gacha-dome {
+    position: absolute; top: 8%; left: 4%; width: 92%; height: 46%;
+    background: rgba(190,225,255,0.22);
+    border: 5px solid #e74c3c;
+    border-radius: 50% 50% 16px 16px / 38% 38% 16px 16px;
+    overflow: hidden;
+  }
+  .gacha-capsule {
+    position: absolute; width: 13%; height: 13%; border-radius: 50%;
+    background: linear-gradient(to bottom, #fff 50%, var(--c) 50%);
+    border: 1px solid rgba(0,0,0,0.25);
+    transition: transform 0.12s;
+  }
+  .gacha-capsule.shake { animation: gachaShake 0.15s infinite; }
+  @keyframes gachaShake {
+    0%, 100% { transform: translate(0, 0); }
+    25%  { transform: translate(-3px, 2px) rotate(-8deg); }
+    50%  { transform: translate(3px, -3px) rotate(8deg); }
+    75%  { transform: translate(-2px, 3px) rotate(-4deg); }
+  }
+  .gacha-body {
+    position: absolute; top: 52%; left: 0; width: 100%; height: 48%;
+    background: linear-gradient(#e74c3c, #c0392b);
+    border-radius: 0 0 16px 16px;
+  }
+  .gacha-slot {
+    position: absolute; top: 10%; left: 50%; transform: translateX(-50%);
+    width: 36%; height: 9%; background: #7a1f12; border-radius: 4px;
+  }
+  .gacha-handle {
+    position: absolute; top: 30%; left: 50%; transform: translateX(-50%) rotate(0deg);
+    width: 38%; height: 38%; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #fff, #ddd 70%, #bbb);
+    border: 5px solid #ccc;
+    transition: transform 1s cubic-bezier(.5, 1.8, .4, 1);
+  }
+  .gacha-handle::after {
+    content: ''; position: absolute; top: 50%; left: 50%; width: 70%; height: 14%;
+    background: #999; border-radius: 4px; transform: translate(-50%, -50%);
+  }
+  .gacha-handle.spin { transform: translateX(-50%) rotate(360deg); }
+  .gacha-exit {
+    position: absolute; bottom: 6%; left: 8%; width: 34%; height: 26%;
+    background: #7a1f12; border-radius: 6px 6px 14px 14px;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.3) inset;
+  }
+
+  .gacha-output { position: relative; width: 80px; height: 80px; overflow: visible; }
+  .gacha-output-capsule {
+    position: absolute; left: 50%; top: -140px;
+    width: 50px; height: 50px; border-radius: 50%;
+    background: linear-gradient(to bottom, #fff 50%, var(--c) 50%);
+    border: 2px solid rgba(0,0,0,0.3);
+    transform: translateX(-50%) scale(1);
+    opacity: 0;
+    transition: top 0.6s cubic-bezier(.5,0,.7,1.4), opacity 0.2s, transform 0.6s ease-out;
+  }
+  .gacha-output-capsule.drop { top: 0; opacity: 1; }
+  .gacha-output-capsule.zoom { transform: translateX(-50%) scale(6); }
+
+  .gacha-btn-row { display: flex; gap: 10px; }
+
+  .collection-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+    max-width: 360px;
+  }
+  .collection-item {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.06); border-radius: 10px; padding: 10px;
+  }
+  .collection-capsule {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: linear-gradient(to bottom, #fff 50%, var(--c) 50%);
+    border: 2px solid rgba(0,0,0,0.3);
+  }
+  .collection-item.locked .collection-capsule {
+    background: #444; border-color: #222;
+  }
+  .collection-count { font-size: 13px; color: #ddd; }
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -78,6 +173,7 @@
   <div id="modeSelect">
     <button class="mode-btn" id="cpuBtn">CPU対戦</button>
     <button class="mode-btn" id="onlineModeBtn">通信対戦</button>
+    <button class="mode-btn" id="collectionBtn">コレクション</button>
   </div>
 
   <div id="onlineMenu" style="display:none;">
@@ -90,6 +186,44 @@
     <div id="onlineStatus"></div>
     <button id="backBtn">戻る</button>
   </div>
+</div>
+
+<!-- ── 勝利ガチャ ── -->
+<div id="gachaScreen">
+  <h2 class="gacha-title">勝利ボーナスガチャ！</h2>
+  <div class="gacha-machine">
+    <div class="gacha-lid"></div>
+    <div class="gacha-dome">
+      <div class="gacha-capsule" style="--c:#e74c3c; left:8%;  top:10%;"></div>
+      <div class="gacha-capsule" style="--c:#3498db; left:34%; top:4%;"></div>
+      <div class="gacha-capsule" style="--c:#2ecc71; left:58%; top:14%;"></div>
+      <div class="gacha-capsule" style="--c:#f1c40f; left:78%; top:6%;"></div>
+      <div class="gacha-capsule" style="--c:#9b59b6; left:18%; top:38%;"></div>
+      <div class="gacha-capsule" style="--c:#ecf0f1; left:46%; top:42%;"></div>
+      <div class="gacha-capsule" style="--c:#e74c3c; left:70%; top:36%;"></div>
+      <div class="gacha-capsule" style="--c:#3498db; left:4%;  top:64%;"></div>
+      <div class="gacha-capsule" style="--c:#f1c40f; left:30%; top:66%;"></div>
+      <div class="gacha-capsule" style="--c:#2ecc71; left:56%; top:62%;"></div>
+      <div class="gacha-capsule" style="--c:#9b59b6; left:80%; top:64%;"></div>
+    </div>
+    <div class="gacha-body">
+      <div class="gacha-slot"></div>
+      <div class="gacha-handle" id="gachaHandle"></div>
+      <div class="gacha-exit"></div>
+    </div>
+  </div>
+  <div class="gacha-output" id="gachaOutput"></div>
+  <div class="gacha-btn-row">
+    <button class="mode-btn" id="gachaPullBtn">ハンドルを回す！</button>
+    <button class="mode-btn" id="gachaCloseBtn" style="display:none;">タイトルへ戻る</button>
+  </div>
+</div>
+
+<!-- ── コレクション ── -->
+<div id="collectionScreen">
+  <h2 class="gacha-title">コレクション</h2>
+  <div class="collection-grid" id="collectionGrid"></div>
+  <button class="mode-btn" id="collectionBackBtn">戻る</button>
 </div>
 
 <div id="touchControls">
@@ -171,6 +305,28 @@ let gameState = 'start'; // start / play / point / gameover
 let pointMsg = '';
 let pointTimer = 0;
 let stars = [];
+
+// ── ガチャ ────────────────────────────────────────
+const CAPSULE_TYPES = [
+  { id: 'red',    color: '#e74c3c' },
+  { id: 'blue',   color: '#3498db' },
+  { id: 'green',  color: '#2ecc71' },
+  { id: 'yellow', color: '#f1c40f' },
+  { id: 'purple', color: '#9b59b6' },
+  { id: 'white',  color: '#ecf0f1' },
+];
+let gachaShown = false;
+
+function loadCollection() {
+  try {
+    return JSON.parse(localStorage.getItem('sepak_gacha_collection')) || {};
+  } catch (e) {
+    return {};
+  }
+}
+function saveCollection(collection) {
+  localStorage.setItem('sepak_gacha_collection', JSON.stringify(collection));
+}
 
 // ── 通信対戦 ──────────────────────────────────────
 let mode = 'cpu'; // 'cpu' | 'host' | 'guest'
@@ -752,10 +908,17 @@ function gameLoop(ts) {
       pointTimer--;
       if (pointTimer <= 0) resetAfterPoint();
     } else if (gameState === 'gameover') {
-      if (keys['Space'] && pointTimer <= 0) {
-        score = { p: 0, cpu: 0 };
-        resetEntities();
-        gameState = 'play';
+      if (pointTimer <= 0) {
+        if (score.p >= WIN_SCORE) {
+          if (!gachaShown) {
+            gachaShown = true;
+            showGachaScreen();
+          }
+        } else if (keys['Space']) {
+          score = { p: 0, cpu: 0 };
+          resetEntities();
+          gameState = 'play';
+        }
       }
       pointTimer = Math.max(0, pointTimer - 1);
     }
@@ -843,6 +1006,8 @@ function gameLoop(ts) {
 document.getElementById('cpuBtn').addEventListener('click', () => {
   document.getElementById('startScreen').style.display = 'none';
   mode = 'cpu';
+  score = { p: 0, cpu: 0 };
+  gachaShown = false;
   resetEntities();
   gameState = 'play';
   requestAnimationFrame(gameLoop);
@@ -922,6 +1087,91 @@ function startOnlineGame() {
 
   requestAnimationFrame(gameLoop);
 }
+
+// ── ガチャ画面 ────────────────────────────────────
+function showGachaScreen() {
+  const output = document.getElementById('gachaOutput');
+  output.innerHTML = '';
+  document.getElementById('gachaHandle').classList.remove('spin');
+  document.querySelectorAll('.gacha-capsule').forEach(c => c.classList.remove('shake'));
+
+  const pullBtn = document.getElementById('gachaPullBtn');
+  pullBtn.style.display = '';
+  pullBtn.disabled = false;
+  document.getElementById('gachaCloseBtn').style.display = 'none';
+
+  document.getElementById('gachaScreen').style.display = 'flex';
+}
+
+document.getElementById('gachaPullBtn').addEventListener('click', () => {
+  const pullBtn = document.getElementById('gachaPullBtn');
+  pullBtn.disabled = true;
+
+  // ハンドルが回転し、カプセルがガシャガシャ揺れる
+  document.getElementById('gachaHandle').classList.add('spin');
+  document.querySelectorAll('.gacha-capsule').forEach(c => c.classList.add('shake'));
+
+  setTimeout(() => {
+    document.querySelectorAll('.gacha-capsule').forEach(c => c.classList.remove('shake'));
+
+    // カプセルが出口からコロンと落ちてくる
+    const result = CAPSULE_TYPES[Math.floor(Math.random() * CAPSULE_TYPES.length)];
+    const collection = loadCollection();
+    collection[result.id] = (collection[result.id] || 0) + 1;
+    saveCollection(collection);
+
+    const output = document.getElementById('gachaOutput');
+    output.innerHTML = '';
+    const capsule = document.createElement('div');
+    capsule.className = 'gacha-output-capsule';
+    capsule.style.setProperty('--c', result.color);
+    output.appendChild(capsule);
+
+    requestAnimationFrame(() => capsule.classList.add('drop'));
+
+    // 落下後、画面いっぱいにズームアップ
+    setTimeout(() => {
+      capsule.classList.add('zoom');
+      setTimeout(() => {
+        document.getElementById('gachaCloseBtn').style.display = '';
+        pullBtn.style.display = 'none';
+      }, 700);
+    }, 700);
+  }, 1000);
+});
+
+document.getElementById('gachaCloseBtn').addEventListener('click', () => {
+  document.getElementById('gachaScreen').style.display = 'none';
+  gachaShown = false;
+  score = { p: 0, cpu: 0 };
+  gameState = 'start';
+  document.getElementById('startScreen').style.display = 'flex';
+});
+
+// ── コレクション画面 ──────────────────────────────
+function renderCollection() {
+  const collection = loadCollection();
+  const grid = document.getElementById('collectionGrid');
+  grid.innerHTML = '';
+  CAPSULE_TYPES.forEach(t => {
+    const count = collection[t.id] || 0;
+    const item = document.createElement('div');
+    item.className = 'collection-item' + (count > 0 ? '' : ' locked');
+    item.innerHTML =
+      `<div class="collection-capsule" style="--c:${t.color}"></div>` +
+      `<div class="collection-count">${count > 0 ? '×' + count : '？'}</div>`;
+    grid.appendChild(item);
+  });
+}
+
+document.getElementById('collectionBtn').addEventListener('click', () => {
+  renderCollection();
+  document.getElementById('collectionScreen').style.display = 'flex';
+});
+
+document.getElementById('collectionBackBtn').addEventListener('click', () => {
+  document.getElementById('collectionScreen').style.display = 'none';
+});
 </script>
 </body>
 </html>
