@@ -557,10 +557,11 @@ function cpuAI() {
   else if (cpu.x > targetX + 5) cpu.vx = -spd;
   else cpu.vx = 0;
 
-  // ジャンプ判断（ネット付近かつボールが高い位置のときだけ早めに跳ぶ）
+  // ジャンプ判断（ネット付近、もしくは遠くてもボールが高い位置のときに早めに跳ぶ）
   const nearNet = cpu.x < NET_X + 160;
   const ballHigh = ball.y < GROUND - 70;
-  if (ball.x > NET_X - 30 && ballHigh && nearNet && cpu.onGround) {
+  const canAttack = nearNet || ballHigh;
+  if (ball.x > NET_X - 30 && canAttack && cpu.onGround) {
     if (Math.abs(cpu.x - ball.x) < 140) {
       cpu.vy = -11;
       cpu.onGround = false;
@@ -571,8 +572,8 @@ function cpuAI() {
   if (cpu.kickCooldown <= 0) {
     const dx = Math.abs(cpu.x - ball.x);
     const dy = Math.abs(cpu.y - ball.y);
-    // オーバーヘッドアタックはネット付近かつボールが高い位置のときのみ
-    if (!cpu.onGround && dy < 60 && dx < 70 && nearNet && ballHigh) {
+    // オーバーヘッドアタックはネット付近、もしくは遠くてもボールが高い位置のときのみ
+    if (!cpu.onGround && dy < 60 && dx < 70 && canAttack) {
       doOverhead(cpu);
     } else if (dx < 65 && dy < 65) {
       doKick(cpu);
@@ -689,22 +690,22 @@ function updatePlayer(ent, input) {
   ent.vy += GRAVITY * SPEED_SCALE;
 
   if (input) {
-    if (input.left)  { ent.vx = -13.5; ent.facing = -1; }
-    else if (input.right) { ent.vx = 13.5; ent.facing = 1; }
+    if (input.left)  { ent.vx = -13.5 * 1.3; ent.facing = -1; }
+    else if (input.right) { ent.vx = 13.5 * 1.3; ent.facing = 1; }
     else ent.vx *= 0.7;
 
     // ジャンプ（2回まで連続ジャンプ可能）
     if (input.jump && !ent.prevJump) {
       if (ent.onGround) {
-        ent.vy = -11.5; ent.onGround = false; ent.jumpCount = 1;
+        ent.vy = -11.5 * 1.3; ent.onGround = false; ent.jumpCount = 1;
       } else if (ent.jumpCount < 2) {
-        ent.vy = -11.5; ent.jumpCount = 2;
+        ent.vy = -11.5 * 1.3; ent.jumpCount = 2;
       }
     }
     ent.prevJump = input.jump;
 
     if (input.down && !ent.onGround) {
-      ent.vy = 18; // 急降下（上昇中でも即下降）
+      ent.vy = 18 * 1.3; // 急降下（上昇中でも即下降）
     }
     if (input.kick && ent.kickCooldown <= 0) doKick(ent);
     if (input.overhead && ent.kickCooldown <= 0) doOverhead(ent);
