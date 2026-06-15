@@ -776,43 +776,53 @@ function resetAfterPoint() {
 
 // ── 描画：背景 ────────────────────────────────────
 function drawBackground() {
-  // 空のグラデーション
-  const sky = ctx.createLinearGradient(0, 0, 0, GROUND);
-  sky.addColorStop(0, '#050518');
-  sky.addColorStop(0.7, '#0d1a3a');
-  sky.addColorStop(1, '#1a2a4a');
-  ctx.fillStyle = sky;
+  // 体育館の壁面（上部ほど明るいグラデーション）
+  const wall = ctx.createLinearGradient(0, 0, 0, GROUND);
+  wall.addColorStop(0, '#dfe6ee');
+  wall.addColorStop(0.55, '#b7c3d4');
+  wall.addColorStop(1, '#8c9cb4');
+  ctx.fillStyle = wall;
   ctx.fillRect(0, 0, W, H);
 
-  // 星
-  stars.forEach(s => {
-    const twinkle = 0.5 + 0.5 * Math.sin(Date.now() * 0.001 + s.b * 10);
-    ctx.fillStyle = `rgba(255,255,255,${0.4 + twinkle * 0.6})`;
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-    ctx.fill();
-  });
-
-  // 月
-  ctx.save();
-  ctx.fillStyle = '#ffe8a0';
-  ctx.shadowColor = '#ffe060';
-  ctx.shadowBlur = 30;
-  ctx.beginPath(); ctx.arc(700, 50, 28, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#0d1a3a';
-  ctx.beginPath(); ctx.arc(712, 44, 24, 0, Math.PI * 2); ctx.fill();
-  ctx.restore();
-
-  // 観客席（簡易シルエット）
-  ctx.save();
-  for (let i = 0; i < 40; i++) {
-    const sx = (i * 53) % W;
-    const sy = 14 + ((i * 17) % 26);
-    const tone = 30 + (i % 5) * 8;
-    ctx.fillStyle = `rgba(${tone + 40},${tone + 50},${tone + 80},0.5)`;
-    ctx.fillRect(sx, sy, 26, 10);
+  // 天井のライト（照明）
+  for (let i = 0; i < 4; i++) {
+    const lx = 100 + i * 200;
+    const glow = ctx.createRadialGradient(lx, 6, 0, lx, 6, 110);
+    glow.addColorStop(0, 'rgba(255,255,240,0.55)');
+    glow.addColorStop(1, 'rgba(255,255,240,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#fffdf2';
+    ctx.fillRect(lx - 32, 4, 64, 8);
   }
-  ctx.restore();
+
+  // 高窓（採光窓）
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  for (let i = 0; i < 6; i++) {
+    ctx.fillRect(40 + i * 130, 60, 90, 36);
+  }
+
+  // 観客席（観客席シルエット）
+  const standsTop = GROUND - 90;
+  const standsH = 90;
+  ctx.fillStyle = '#5a6a82';
+  ctx.fillRect(0, standsTop, W, standsH);
+  // ベンチの段差ライン
+  ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+  ctx.lineWidth = 1;
+  for (let row = 0; row < 5; row++) {
+    const ry = standsTop + 6 + row * (standsH - 6) / 5;
+    ctx.beginPath(); ctx.moveTo(0, ry); ctx.lineTo(W, ry); ctx.stroke();
+  }
+  // 観客（簡易シルエット）
+  for (let i = 0; i < 60; i++) {
+    const px = (i * 41) % W;
+    const row = i % 5;
+    const py = standsTop + 10 + row * (standsH - 6) / 5;
+    const tone = 60 + ((i * 7) % 5) * 30;
+    ctx.fillStyle = `rgba(${tone},${tone + 10},${tone + 30},0.6)`;
+    ctx.beginPath(); ctx.arc(px + 6, py, 5, 0, Math.PI * 2); ctx.fill();
+  }
 
   // コートの地面（緑のコートサーフェス。ネット側から手前にかけて暗くなるグラデーションで立体感を表現）
   const floorTop = GROUND - 6;
@@ -852,9 +862,9 @@ function drawBackground() {
   ctx.beginPath(); ctx.arc(NET_X, floorTop + 2, quarterR, 0, Math.PI / 2); ctx.stroke();
   ctx.beginPath(); ctx.arc(NET_X, floorTop + 2, quarterR, Math.PI / 2, Math.PI); ctx.stroke();
 
-  // サービスサークル（各コート中央付近の小円）
+  // サービスサークル（各コート中央付近の小円。ネット寄りに配置）
   [NET_X - 130, NET_X + 130].forEach(cx => {
-    ctx.beginPath(); ctx.arc(cx, H - 14, 13, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, floorTop + 18, 13, 0, Math.PI * 2); ctx.stroke();
   });
 
   // コートライト（照明雰囲気）
