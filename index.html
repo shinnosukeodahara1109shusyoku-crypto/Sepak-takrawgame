@@ -871,11 +871,11 @@ function drawPlayer(ent) {
   const scale = ent.facing;
   ctx.scale(scale * 2, 2); // キャラクターを2倍の大きさで描画
 
-  // オーバーヘッド時は体を逆転（頭が下、足が上のシザーズキック姿勢）
+  // オーバーヘッド時は体をその場で反転（頭が下、足が上のシザーズキック姿勢）
   if (isOverhead) {
     ctx.save();
-    ctx.rotate(Math.PI);
     ctx.translate(0, -PLAYER_H);
+    ctx.rotate(Math.PI);
   }
 
   // ── 配色（ユニフォーム） ──
