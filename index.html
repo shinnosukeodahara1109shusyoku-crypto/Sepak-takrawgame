@@ -340,6 +340,7 @@ function playAttackSound() {
 function playSynthesizedSound(type) {
   if (type === 'title_voice') {
     if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
       const uttr = new SpeechSynthesisUtterance();
       uttr.text = 'Seh, Paa.';
       uttr.lang = 'en-US';
@@ -1610,9 +1611,17 @@ function playTitleOpening() {
   document.getElementById('titleText').classList.add('title-show');
   playSynthesizedSound('title_voice');
 }
+// 多くのブラウザは音声(speechSynthesis)の自動再生をブロックするため、
+// 起動直後にも試すが、最初のタップ/キー操作のタイミングで確実に再生する
 playTitleOpening();
-document.addEventListener('pointerdown', playTitleOpening, { once: true });
-document.addEventListener('keydown', playTitleOpening, { once: true });
+document.addEventListener('pointerdown', () => {
+  titleOpeningPlayed = false;
+  playTitleOpening();
+}, { once: true });
+document.addEventListener('keydown', () => {
+  titleOpeningPlayed = false;
+  playTitleOpening();
+}, { once: true });
 </script>
 </body>
 </html>
