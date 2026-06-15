@@ -557,8 +557,10 @@ function cpuAI() {
   else if (cpu.x > targetX + 5) cpu.vx = -spd;
   else cpu.vx = 0;
 
-  // ジャンプ判断（ボールが近づいてきたら早めに跳ぶ）
-  if (ball.x > NET_X - 30 && ball.y < GROUND - 40 && cpu.onGround) {
+  // ジャンプ判断（ネット付近かつボールが高い位置のときだけ早めに跳ぶ）
+  const nearNet = cpu.x < NET_X + 160;
+  const ballHigh = ball.y < GROUND - 70;
+  if (ball.x > NET_X - 30 && ballHigh && nearNet && cpu.onGround) {
     if (Math.abs(cpu.x - ball.x) < 140) {
       cpu.vy = -11;
       cpu.onGround = false;
@@ -569,7 +571,8 @@ function cpuAI() {
   if (cpu.kickCooldown <= 0) {
     const dx = Math.abs(cpu.x - ball.x);
     const dy = Math.abs(cpu.y - ball.y);
-    if (!cpu.onGround && dy < 60 && dx < 70) {
+    // オーバーヘッドアタックはネット付近かつボールが高い位置のときのみ
+    if (!cpu.onGround && dy < 60 && dx < 70 && nearNet && ballHigh) {
       doOverhead(cpu);
     } else if (dx < 65 && dy < 65) {
       doKick(cpu);
