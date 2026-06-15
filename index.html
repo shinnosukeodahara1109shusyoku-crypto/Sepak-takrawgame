@@ -323,8 +323,8 @@ function playAttackSound() {
 const GRAVITY = 0.45;
 const SPEED_SCALE = 0.2; // 全体のゲームスピード（1 = 通常、0.2 = 5倍ゆっくり）
 // ボールの物理更新を1フレーム内で複数回実行し、軌道・重力の比率を保ったまま
-// 見た目のスピードだけを1.5倍にする（BALL_SUBSTEPS × BALL_STEP_SCALE = SPEED_SCALE * 1.5）
-const BALL_SUBSTEPS = 3;
+// 見た目のスピードだけを2倍にする（BALL_SUBSTEPS × BALL_STEP_SCALE = SPEED_SCALE * 2）
+const BALL_SUBSTEPS = 4;
 const BALL_STEP_SCALE = SPEED_SCALE * 0.5;
 const GROUND = H - 60;
 const NET_X = W / 2;
@@ -583,7 +583,7 @@ function doKick(ent) {
   const dx = ball.x - ent.x;
   const dy = ball.y - ent.y;
   if (Math.abs(dx) < 60 && Math.abs(dy) < 80) {
-    const spd = ent.isPlayer ? 13 : 11;
+    const spd = (ent.isPlayer ? 13 : 11) * 1.3;
     const dir = Math.abs(dx) < 5 ? ent.facing : (dx > 0 ? 1 : -1);
     ball.vx = dir * spd * 0.7 + (ent.isPlayer ? 0.5 : -0.5);
     ball.vy = -spd * 0.85;
@@ -600,8 +600,8 @@ function doOverhead(ent) {
   const dx = ball.x - ent.x;
   const dy = ball.y - ent.y;
   if (Math.abs(dx) < 70 && Math.abs(dy) < 80) {
-    ball.vx = (ent.isPlayer ? 1 : -1) * 14;
-    ball.vy = 6;  // 相手コートに飛ぶ角度
+    ball.vx = (ent.isPlayer ? 1 : -1) * 14 * 1.3;
+    ball.vy = 6 * 1.3;  // 相手コートに飛ぶ角度
     ball.spin = ent.isPlayer ? -8 : 8;
     ent.kickCooldown = 25;
     ent.overheadState = 2;
