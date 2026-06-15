@@ -134,6 +134,14 @@
 
   .gacha-btn-row { display: flex; gap: 10px; }
 
+  .gacha-result-card {
+    display: none; flex-direction: column; align-items: center; gap: 6px;
+    max-width: 280px;
+  }
+  .gacha-result-img { width: 160px; height: 160px; object-fit: cover; border-radius: 10px; border: 3px solid #ff0; box-shadow: 0 0 16px #f80; }
+  .gacha-result-name { font-size: 20px; font-weight: bold; color: #ff0; }
+  .gacha-result-quote { font-size: 13px; color: #ccc; }
+
   .collection-grid {
     display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
     max-width: 360px;
@@ -151,6 +159,11 @@
     background: #444; border-color: #222;
   }
   .collection-count { font-size: 13px; color: #ddd; }
+  .collection-capsule-img {
+    width: 44px; height: 44px; border-radius: 50%; object-fit: cover;
+    border: 2px solid #ff0;
+  }
+  .collection-name { font-size: 11px; color: #ff0; }
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -213,6 +226,7 @@
     </div>
   </div>
   <div class="gacha-output" id="gachaOutput"></div>
+  <div class="gacha-result-card" id="gachaResultCard"></div>
   <div class="gacha-btn-row">
     <button class="mode-btn" id="gachaPullBtn">ハンドルを回す！</button>
     <button class="mode-btn" id="gachaCloseBtn" style="display:none;">タイトルへ戻る</button>
@@ -308,14 +322,30 @@ let stars = [];
 
 // ── ガチャ ────────────────────────────────────────
 const CAPSULE_TYPES = [
-  { id: 'red',    color: '#e74c3c' },
-  { id: 'blue',   color: '#3498db' },
-  { id: 'green',  color: '#2ecc71' },
-  { id: 'yellow', color: '#f1c40f' },
-  { id: 'purple', color: '#9b59b6' },
-  { id: 'white',  color: '#ecf0f1' },
+  { id: 'red',    color: '#e74c3c', weight: 1 },
+  { id: 'blue',   color: '#3498db', weight: 1 },
+  { id: 'green',  color: '#2ecc71', weight: 1 },
+  { id: 'yellow', color: '#f1c40f', weight: 1 },
+  { id: 'purple', color: '#9b59b6', weight: 1 },
+  { id: 'white',  color: '#ecf0f1', weight: 1 },
+  {
+    id: 'tsubo_kura', color: '#f1c40f', weight: 24, // 全体の80%（他6種が合計20%）
+    name: 'ツボ・クラ',
+    quote: '＜一言＞野球とセパの二刀流なんてこいつとあいつくらい',
+    image: 'assets/tsubo_kura.png',
+  },
 ];
 let gachaShown = false;
+
+function pickCapsule() {
+  const total = CAPSULE_TYPES.reduce((sum, t) => sum + t.weight, 0);
+  let r = Math.random() * total;
+  for (const t of CAPSULE_TYPES) {
+    if (r < t.weight) return t;
+    r -= t.weight;
+  }
+  return CAPSULE_TYPES[CAPSULE_TYPES.length - 1];
+}
 
 function loadCollection() {
   try {
@@ -1095,6 +1125,10 @@ function showGachaScreen() {
   document.getElementById('gachaHandle').classList.remove('spin');
   document.querySelectorAll('.gacha-capsule').forEach(c => c.classList.remove('shake'));
 
+  const resultCard = document.getElementById('gachaResultCard');
+  resultCard.style.display = 'none';
+  resultCard.innerHTML = '';
+
   const pullBtn = document.getElementById('gachaPullBtn');
   pullBtn.style.display = '';
   pullBtn.disabled = false;
@@ -1115,7 +1149,7 @@ document.getElementById('gachaPullBtn').addEventListener('click', () => {
     document.querySelectorAll('.gacha-capsule').forEach(c => c.classList.remove('shake'));
 
     // カプセルが出口からコロンと落ちてくる
-    const result = CAPSULE_TYPES[Math.floor(Math.random() * CAPSULE_TYPES.length)];
+    const result = pickCapsule();
     const collection = loadCollection();
     collection[result.id] = (collection[result.id] || 0) + 1;
     saveCollection(collection);
@@ -1133,12 +1167,27 @@ document.getElementById('gachaPullBtn').addEventListener('click', () => {
     setTimeout(() => {
       capsule.classList.add('zoom');
       setTimeout(() => {
+        showGachaResultCard(result);
         document.getElementById('gachaCloseBtn').style.display = '';
         pullBtn.style.display = 'none';
       }, 700);
     }, 700);
   }, 1000);
 });
+
+function showGachaResultCard(result) {
+  const card = document.getElementById('gachaResultCard');
+  if (result.name) {
+    card.innerHTML =
+      (result.image ? `<img src="${result.image}" alt="${result.name}" class="gacha-result-img">` : '') +
+      `<div class="gacha-result-name">${result.name}</div>` +
+      (result.quote ? `<div class="gacha-result-quote">${result.quote}</div>` : '');
+  } else {
+    card.innerHTML = '';
+  }
+  card.style.display = 'flex';
+}
+
 
 document.getElementById('gachaCloseBtn').addEventListener('click', () => {
   document.getElementById('gachaScreen').style.display = 'none';
@@ -1157,9 +1206,14 @@ function renderCollection() {
     const count = collection[t.id] || 0;
     const item = document.createElement('div');
     item.className = 'collection-item' + (count > 0 ? '' : ' locked');
+    const visual = (t.image && count > 0)
+      ? `<img src="${t.image}" alt="${t.name || ''}" class="collection-capsule-img">`
+      : `<div class="collection-capsule" style="--c:${t.color}"></div>`;
+    const label = count > 0 ? (t.name || '') : '？';
     item.innerHTML =
-      `<div class="collection-capsule" style="--c:${t.color}"></div>` +
-      `<div class="collection-count">${count > 0 ? '×' + count : '？'}</div>`;
+      visual +
+      `<div class="collection-count">${count > 0 ? '×' + count : ''}</div>` +
+      (label ? `<div class="collection-name">${label}</div>` : '');
     grid.appendChild(item);
   });
 }
