@@ -176,6 +176,9 @@
   .collection-name { font-size: 11px; color: #ff0; }
   .collection-item.clickable { cursor: pointer; }
 
+  #loginRow { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 10px; }
+  #loginStatus { font-size: 12px; color: #afa; min-height: 16px; }
+
   #collectionDetail {
     position: fixed; inset: 0; z-index: 310;
     background: rgba(0,0,5,0.85);
@@ -194,6 +197,7 @@
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 </head>
 <body>
 <div id="ui">← → 移動 | スペース/↑ ジャンプ | Z キック | X オーバーヘッドキック</div>
@@ -214,6 +218,11 @@
     <button class="mode-btn" id="cpuBtn">CPU対戦</button>
     <button class="mode-btn" id="onlineModeBtn">通信対戦</button>
     <button class="mode-btn" id="collectionBtn">コレクション</button>
+  </div>
+
+  <div id="loginRow">
+    <button class="mode-btn" id="googleLoginBtn">Googleでログイン</button>
+    <div id="loginStatus"></div>
   </div>
 
   <div id="onlineMenu" style="display:none;">
@@ -336,9 +345,11 @@ const firebaseConfig = {
   measurementId: "G-7VQ87H3LGP"
 };
 let db = null;
+let auth = null;
 try {
   firebase.initializeApp(firebaseConfig);
   db = firebase.database();
+  auth = firebase.auth();
 } catch (e) {
   console.warn('Firebase未設定: 通信対戦は利用できません', e);
 }
@@ -388,7 +399,62 @@ function loadCollection() {
 }
 function saveCollection(collection) {
   localStorage.setItem('sepak_gacha_collection', JSON.stringify(collection));
+  if (currentUser && db) {
+    db.ref('users/' + currentUser.uid + '/collection').set(collection);
+  }
 }
+
+// ── ログイン（コレクションのクラウド保存） ──────────
+let currentUser = null;
+
+function mergeCollections(a, b) {
+  const merged = Object.assign({}, a);
+  for (const id in b) {
+    merged[id] = Math.max(merged[id] || 0, b[id] || 0);
+  }
+  return merged;
+}
+
+function updateLoginUI() {
+  const btn = document.getElementById('googleLoginBtn');
+  const status = document.getElementById('loginStatus');
+  if (currentUser) {
+    btn.textContent = 'ログアウト';
+    status.textContent = (currentUser.displayName || 'ユーザー') + ' でログイン中';
+  } else {
+    btn.textContent = 'Googleでログイン';
+    status.textContent = '';
+  }
+}
+
+if (auth) {
+  auth.onAuthStateChanged(user => {
+    currentUser = user;
+    updateLoginUI();
+    if (user && db) {
+      db.ref('users/' + user.uid + '/collection').get().then(snap => {
+        const cloud = snap.val() || {};
+        const merged = mergeCollections(loadCollection(), cloud);
+        saveCollection(merged);
+        if (document.getElementById('collectionScreen').style.display !== 'none') {
+          renderCollection();
+        }
+      }).catch(e => console.warn('コレクション読み込み失敗', e));
+    }
+  });
+}
+
+document.getElementById('googleLoginBtn').addEventListener('click', () => {
+  if (!auth) return;
+  if (currentUser) {
+    auth.signOut();
+  } else {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).catch(e => {
+      document.getElementById('loginStatus').textContent = 'ログイン失敗: ' + e.message;
+    });
+  }
+});
 
 // ── 通信対戦 ──────────────────────────────────────
 let mode = 'cpu'; // 'cpu' | 'host' | 'guest'
