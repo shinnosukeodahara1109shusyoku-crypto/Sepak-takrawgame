@@ -25,10 +25,13 @@
   }
   .touch-btn.active { background: rgba(255,255,255,0.35); }
   #btnLeft, #btnRight, #btnJump, #btnDown { font-family: Arial, sans-serif; font-size: 24px; }
-  #btnLeft   { left: 14px;  bottom: 78px; }
-  #btnRight  { left: 80px;  bottom: 78px; }
-  #btnJump   { left: 47px;  bottom: 146px; width: 70px; height: 70px; }
-  #btnDown   { left: 47px;  bottom: 14px; }
+  #btnLeft   { left: 8px;   bottom: 70px; }
+  #btnRight  { left: 108px; bottom: 70px; }
+  #btnJump   { left: 58px;  bottom: 132px; }
+  #btnDown   { left: 58px;  bottom: 8px; }
+  #btnJumpLeft, #btnJumpRight { width: 50px; height: 50px; font-size: 11px; line-height: 1.1; }
+  #btnJumpLeft  { left: 38px; bottom: 106px; }
+  #btnJumpRight { left: 88px; bottom: 106px; }
   #btnKick   { right: 16px;  bottom: 16px; width: 70px; height: 70px; font-size: 18px; }
   #btnOver   { right: 96px; bottom: 16px; width: 70px; height: 70px; font-size: 13px; }
 
@@ -298,6 +301,8 @@
   <div class="touch-btn" id="btnRight">▶</div>
   <div class="touch-btn" id="btnDown">▼</div>
   <div class="touch-btn" id="btnJump">▲</div>
+  <div class="touch-btn" id="btnJumpLeft">↖<br>ジャンプ</div>
+  <div class="touch-btn" id="btnJumpRight">↗<br>ジャンプ</div>
   <div class="touch-btn" id="btnKick">Z<br>キック</div>
   <div class="touch-btn" id="btnOver">X<br>アタック</div>
 </div>
@@ -607,10 +612,10 @@ function setTouchControlsVisible(show) {
   document.getElementById('touchControls').classList.toggle('tc-active', show);
 }
 
-function bindTouchButton(id, code) {
+function bindTouchButton(id, ...codes) {
   const el = document.getElementById(id);
-  const press = e => { e.preventDefault(); keys[code] = true; el.classList.add('active'); };
-  const release = e => { e.preventDefault(); keys[code] = false; el.classList.remove('active'); };
+  const press = e => { e.preventDefault(); codes.forEach(c => keys[c] = true); el.classList.add('active'); };
+  const release = e => { e.preventDefault(); codes.forEach(c => keys[c] = false); el.classList.remove('active'); };
   el.addEventListener('touchstart', press, { passive: false });
   el.addEventListener('touchend', release, { passive: false });
   el.addEventListener('touchcancel', release, { passive: false });
@@ -622,6 +627,8 @@ bindTouchButton('btnLeft', 'ArrowLeft');
 bindTouchButton('btnRight', 'ArrowRight');
 bindTouchButton('btnDown', 'ArrowDown');
 bindTouchButton('btnJump', 'Space');
+bindTouchButton('btnJumpLeft', 'ArrowLeft', 'Space');
+bindTouchButton('btnJumpRight', 'ArrowRight', 'Space');
 bindTouchButton('btnKick', 'KeyZ');
 bindTouchButton('btnOver', 'KeyX');
 
