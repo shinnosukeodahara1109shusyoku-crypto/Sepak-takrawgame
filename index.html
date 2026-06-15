@@ -323,9 +323,9 @@ function playAttackSound() {
 const GRAVITY = 0.45;
 const SPEED_SCALE = 0.2; // 全体のゲームスピード（1 = 通常、0.2 = 5倍ゆっくり）
 // ボールの物理更新を1フレーム内で複数回実行し、軌道・重力の比率を保ったまま
-// 見た目のスピードだけを4倍にする（BALL_SUBSTEPS × BALL_STEP_SCALE = SPEED_SCALE * 4）
+// 見た目のスピードだけを3倍にする（BALL_SUBSTEPS × BALL_STEP_SCALE = SPEED_SCALE * 3）
 const BALL_SUBSTEPS = 4;
-const BALL_STEP_SCALE = SPEED_SCALE * 1.0;
+const BALL_STEP_SCALE = SPEED_SCALE * 0.75;
 const GROUND = H - 60;
 const NET_X = W / 2;
 const NET_H = 100;
