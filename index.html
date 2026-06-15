@@ -575,8 +575,9 @@ function cpuAI() {
   if (cpu.kickCooldown <= 0) {
     const dx = Math.abs(cpu.x - ball.x);
     const dy = Math.abs(cpu.y - ball.y);
-    // オーバーヘッドアタックはネット付近、もしくは遠くてもボールが高い位置のときのみ
-    if (!cpu.onGround && dy < 60 && dx < 70 && canAttack) {
+    // オーバーヘッドアタックはネットを越えられるネット付近のときのみ
+    // （ネットから遠い位置で打つと自陣側に叩き込んでしまうため）
+    if (!cpu.onGround && dy < 60 && dx < 70 && nearNet) {
       doOverhead(cpu);
     } else if (dx < 65 && dy < 65) {
       doKick(cpu);
