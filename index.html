@@ -132,13 +132,23 @@
   .gacha-output-capsule.drop { top: 0; opacity: 1; }
   .gacha-output-capsule.zoom { transform: translateX(-50%) scale(6); }
 
+  .gacha-output-img {
+    position: absolute; left: 50%; top: -140px;
+    width: 80px; height: 80px; object-fit: cover; border-radius: 10px;
+    border: 3px solid #ff0; box-shadow: 0 0 16px #f80;
+    transform: translateX(-50%) scale(1);
+    opacity: 0;
+    transition: top 0.6s cubic-bezier(.5,0,.7,1.4), opacity 0.2s, transform 0.6s ease-out;
+  }
+  .gacha-output-img.drop { top: 0; opacity: 1; }
+  .gacha-output-img.zoom { transform: translateX(-50%) scale(4); }
+
   .gacha-btn-row { display: flex; gap: 10px; }
 
   .gacha-result-card {
     display: none; flex-direction: column; align-items: center; gap: 6px;
     max-width: 280px;
   }
-  .gacha-result-img { width: 160px; height: 160px; object-fit: cover; border-radius: 10px; border: 3px solid #ff0; box-shadow: 0 0 16px #f80; }
   .gacha-result-name { font-size: 20px; font-weight: bold; color: #ff0; }
   .gacha-result-quote { font-size: 13px; color: #ccc; }
 
@@ -164,6 +174,23 @@
     border: 2px solid #ff0;
   }
   .collection-name { font-size: 11px; color: #ff0; }
+  .collection-item.clickable { cursor: pointer; }
+
+  #collectionDetail {
+    position: fixed; inset: 0; z-index: 310;
+    background: rgba(0,0,5,0.85);
+    display: none; align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  .collection-detail-card {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    max-width: 280px; background: rgba(255,255,255,0.06);
+    border-radius: 14px; padding: 20px; text-align: center;
+  }
+  .collection-detail-img {
+    width: 120px; height: 120px; object-fit: cover; border-radius: 12px;
+    border: 3px solid #ff0; box-shadow: 0 0 16px #f80;
+  }
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -238,6 +265,11 @@
   <h2 class="gacha-title">コレクション</h2>
   <div class="collection-grid" id="collectionGrid"></div>
   <button class="mode-btn" id="collectionBackBtn">戻る</button>
+</div>
+
+<!-- ── コレクション詳細 ── -->
+<div id="collectionDetail">
+  <div class="collection-detail-card"></div>
 </div>
 
 <div id="touchControls">
@@ -1156,16 +1188,24 @@ document.getElementById('gachaPullBtn').addEventListener('click', () => {
 
     const output = document.getElementById('gachaOutput');
     output.innerHTML = '';
-    const capsule = document.createElement('div');
-    capsule.className = 'gacha-output-capsule';
-    capsule.style.setProperty('--c', result.color);
-    output.appendChild(capsule);
+    let piece;
+    if (result.image) {
+      piece = document.createElement('img');
+      piece.src = result.image;
+      piece.alt = result.name || '';
+      piece.className = 'gacha-output-img';
+    } else {
+      piece = document.createElement('div');
+      piece.className = 'gacha-output-capsule';
+      piece.style.setProperty('--c', result.color);
+    }
+    output.appendChild(piece);
 
-    requestAnimationFrame(() => capsule.classList.add('drop'));
+    requestAnimationFrame(() => piece.classList.add('drop'));
 
     // 落下後、画面いっぱいにズームアップ
     setTimeout(() => {
-      capsule.classList.add('zoom');
+      piece.classList.add('zoom');
       setTimeout(() => {
         showGachaResultCard(result);
         document.getElementById('gachaCloseBtn').style.display = '';
@@ -1179,7 +1219,6 @@ function showGachaResultCard(result) {
   const card = document.getElementById('gachaResultCard');
   if (result.name) {
     card.innerHTML =
-      (result.image ? `<img src="${result.image}" alt="${result.name}" class="gacha-result-img">` : '') +
       `<div class="gacha-result-name">${result.name}</div>` +
       (result.quote ? `<div class="gacha-result-quote">${result.quote}</div>` : '');
   } else {
@@ -1214,9 +1253,28 @@ function renderCollection() {
       visual +
       `<div class="collection-count">${count > 0 ? '×' + count : ''}</div>` +
       (label ? `<div class="collection-name">${label}</div>` : '');
+
+    if (count > 0 && (t.name || t.quote)) {
+      item.classList.add('clickable');
+      item.addEventListener('click', () => showCollectionDetail(t));
+    }
+
     grid.appendChild(item);
   });
 }
+
+function showCollectionDetail(t) {
+  const detail = document.getElementById('collectionDetail');
+  detail.querySelector('.collection-detail-card').innerHTML =
+    (t.image ? `<img src="${t.image}" alt="${t.name || ''}" class="collection-detail-img">` : '') +
+    (t.name ? `<div class="gacha-result-name">${t.name}</div>` : '') +
+    (t.quote ? `<div class="gacha-result-quote">${t.quote}</div>` : '');
+  detail.style.display = 'flex';
+}
+
+document.getElementById('collectionDetail').addEventListener('click', () => {
+  document.getElementById('collectionDetail').style.display = 'none';
+});
 
 document.getElementById('collectionBtn').addEventListener('click', () => {
   renderCollection();
