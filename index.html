@@ -322,7 +322,10 @@ function playAttackSound() {
 // ── 定数 ──────────────────────────────────────────
 const GRAVITY = 0.45;
 const SPEED_SCALE = 0.2; // 全体のゲームスピード（1 = 通常、0.2 = 5倍ゆっくり）
-const BALL_SPEED_SCALE = SPEED_SCALE * 1.5; // ボールのみ1.5倍速く動かす
+// ボールの物理更新を1フレーム内で複数回実行し、軌道・重力の比率を保ったまま
+// 見た目のスピードだけを1.5倍にする（BALL_SUBSTEPS × BALL_STEP_SCALE = SPEED_SCALE * 1.5）
+const BALL_SUBSTEPS = 3;
+const BALL_STEP_SCALE = SPEED_SCALE * 0.5;
 const GROUND = H - 60;
 const NET_X = W / 2;
 const NET_H = 100;
@@ -625,7 +628,7 @@ function addEffect(x, y, color, type) {
 
 // ── 物理 ──────────────────────────────────────────
 function updateBall(authoritative) {
-  ball.vy += GRAVITY * BALL_SPEED_SCALE;
+  ball.vy += GRAVITY * BALL_STEP_SCALE;
   ball.spin *= 0.97;
   ball.vx *= 0.995;
 
@@ -633,8 +636,8 @@ function updateBall(authoritative) {
   ball.trail.push({ x: ball.x, y: ball.y });
   if (ball.trail.length > 12) ball.trail.shift();
 
-  ball.x += ball.vx * BALL_SPEED_SCALE;
-  ball.y += ball.vy * BALL_SPEED_SCALE;
+  ball.x += ball.vx * BALL_STEP_SCALE;
+  ball.y += ball.vy * BALL_STEP_SCALE;
 
   // 地面
   if (ball.y + BALL_R >= GROUND) {
@@ -667,6 +670,14 @@ function updateBall(authoritative) {
       score.p++;
       showPoint('プレイヤーの得点！', score.p >= WIN_SCORE ? 'gameover' : 'point');
     }
+  }
+}
+
+// ボールの物理更新を1フレーム内でBALL_SUBSTEPS回連続実行する
+function updateBallSubsteps(authoritative) {
+  for (let i = 0; i < BALL_SUBSTEPS; i++) {
+    updateBall(authoritative);
+    if (authoritative && gameState !== 'play') break;
   }
 }
 
@@ -1030,7 +1041,7 @@ function gameLoop(ts) {
     if (gameState === 'play') {
       updatePlayer(player, localInput());
       updatePlayer(cpu, null);
-      updateBall(true);
+      updateBallSubsteps(true);
       updateEffects();
     } else if (gameState === 'point') {
       pointTimer--;
@@ -1054,7 +1065,7 @@ function gameLoop(ts) {
     if (gameState === 'play') {
       updatePlayer(player, localInput());
       updatePlayer(cpu, remoteInput);
-      updateBall(true);
+      updateBallSubsteps(true);
       updateEffects();
     } else if (gameState === 'point') {
       pointTimer--;
@@ -1086,7 +1097,7 @@ function gameLoop(ts) {
     if (gameState === 'play') {
       updatePlayer(cpu, localInput());
       updatePlayer(player, remoteInput);
-      updateBall(false);
+      updateBallSubsteps(false);
       updateEffects();
     }
     netTimer++;
