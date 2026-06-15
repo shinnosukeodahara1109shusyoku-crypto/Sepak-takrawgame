@@ -25,10 +25,10 @@
   }
   .touch-btn.active { background: rgba(255,255,255,0.35); }
   #btnLeft, #btnRight, #btnJump, #btnDown { font-family: Arial, sans-serif; font-size: 24px; }
-  #btnLeft   { left: 16px;  bottom: 86px; }
-  #btnRight  { left: 86px;  bottom: 86px; }
-  #btnJump   { left: 51px;  bottom: 156px; }
-  #btnDown   { left: 51px;  bottom: 16px; }
+  #btnLeft   { left: 14px;  bottom: 78px; }
+  #btnRight  { left: 80px;  bottom: 78px; }
+  #btnJump   { left: 47px;  bottom: 146px; width: 70px; height: 70px; }
+  #btnDown   { left: 47px;  bottom: 14px; }
   #btnKick   { right: 16px;  bottom: 16px; width: 70px; height: 70px; font-size: 18px; }
   #btnOver   { right: 96px; bottom: 16px; width: 70px; height: 70px; font-size: 13px; }
 
@@ -533,7 +533,7 @@ const DIFFICULTY_ATTACK_CHANCE = { amateur: 0.1, professional: 0.5, legend: 1.0 
 // ネットから遠い位置でもアタックしてしまう確率（アマチュアのミスっぽい挙動）
 const DIFFICULTY_FAR_ATTACK_CHANCE = { amateur: 0.2, professional: 0, legend: 0 };
 // CPUの追従速度（アマチュアは反応が遅い）
-const DIFFICULTY_MOVE_SPEED = { amateur: 7.5, professional: 10.8, legend: 10.8 };
+const DIFFICULTY_MOVE_SPEED = { amateur: 8.5, professional: 10.8, legend: 10.8 };
 let cpuAttackChance = DIFFICULTY_ATTACK_CHANCE.legend;
 let cpuFarAttackChance = DIFFICULTY_FAR_ATTACK_CHANCE.legend;
 let cpuMoveSpeed = DIFFICULTY_MOVE_SPEED.legend;
