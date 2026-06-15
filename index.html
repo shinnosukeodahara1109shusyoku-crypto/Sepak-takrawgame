@@ -30,8 +30,7 @@
   #btnJump   { left: 51px;  bottom: 156px; }
   #btnDown   { left: 51px;  bottom: 16px; }
   #btnKick   { right: 16px;  bottom: 16px; width: 70px; height: 70px; font-size: 18px; }
-  #btnOver   { right: 16px;  bottom: 96px; width: 70px; height: 70px; font-size: 13px; }
-  #btnJumpR  { right: 96px; bottom: 16px; width: 70px; height: 70px; font-size: 14px; }
+  #btnOver   { right: 96px; bottom: 16px; width: 70px; height: 70px; font-size: 13px; }
 
   @media (pointer: coarse) {
     #ui { display: none; }
@@ -301,7 +300,6 @@
   <div class="touch-btn" id="btnJump">▲</div>
   <div class="touch-btn" id="btnKick">Z<br>キック</div>
   <div class="touch-btn" id="btnOver">X<br>アタック</div>
-  <div class="touch-btn" id="btnJumpR">ジャンプ</div>
 </div>
 
 <script>
@@ -534,8 +532,14 @@ let mode = 'cpu'; // 'cpu' | 'host' | 'guest'
 const DIFFICULTY_ATTACK_CHANCE = { amateur: 0.1, professional: 0.5, legend: 1.0 };
 // ネットから遠い位置でもアタックしてしまう確率（アマチュアのミスっぽい挙動）
 const DIFFICULTY_FAR_ATTACK_CHANCE = { amateur: 0.2, professional: 0, legend: 0 };
+// CPUの追従速度（アマチュアは反応が遅い）
+const DIFFICULTY_MOVE_SPEED = { amateur: 7.5, professional: 10.8, legend: 10.8 };
+// CPUがボールの位置を見誤る幅（アマチュアは追従がへたくそ）
+const DIFFICULTY_TRACK_ERROR = { amateur: 70, professional: 15, legend: 0 };
 let cpuAttackChance = DIFFICULTY_ATTACK_CHANCE.legend;
 let cpuFarAttackChance = DIFFICULTY_FAR_ATTACK_CHANCE.legend;
+let cpuMoveSpeed = DIFFICULTY_MOVE_SPEED.legend;
+let cpuTrackError = DIFFICULTY_TRACK_ERROR.legend;
 let serveSide = 1; // 1: 自分側からスタート, -1: 相手側からスタート（得点ごとに交互）
 let roomRef = null;
 let remoteInput = { left:false, right:false, jump:false, down:false, kick:false, overhead:false };
@@ -558,6 +562,8 @@ function makePlayer(x, isPlayer) {
     overheadState: 0, // 0=none 1=rising 2=strike
     overheadTimer: 0,
     attackRoll: 0,
+    trackErrorOffset: 0,
+    trackErrorTimer: 0,
     kickEffect: 0,
     width: PLAYER_W, height: PLAYER_H,
     color: isPlayer ? '#4af' : '#f64',
@@ -623,16 +629,23 @@ bindTouchButton('btnDown', 'ArrowDown');
 bindTouchButton('btnJump', 'Space');
 bindTouchButton('btnKick', 'KeyZ');
 bindTouchButton('btnOver', 'KeyX');
-bindTouchButton('btnJumpR', 'Space');
 
 // ── CPU AI ────────────────────────────────────────
 function cpuAI() {
   if (gameState !== 'play') return;
-  const spd = 10.8;
-  // 自陣側に来たボールを常に追いかける
+  const spd = cpuMoveSpeed;
+
+  // ボールの位置を見誤る（アマチュアほど誤差が大きく、たまに見直す）
+  cpu.trackErrorTimer = (cpu.trackErrorTimer || 0) - 1;
+  if (cpu.trackErrorTimer <= 0) {
+    cpu.trackErrorOffset = (Math.random() * 2 - 1) * cpuTrackError;
+    cpu.trackErrorTimer = 30 + Math.floor(Math.random() * 30);
+  }
+
+  // 自陣側に来たボールを常に追いかける（誤差込みの目標位置へ）
   const minX = NET_X + 10;
   const maxX = W - 10;
-  const targetX = Math.max(minX, Math.min(maxX, ball.x));
+  const targetX = Math.max(minX, Math.min(maxX, ball.x + (cpu.trackErrorOffset || 0)));
 
   if (cpu.x < targetX - 5) cpu.vx = spd;
   else if (cpu.x > targetX + 5) cpu.vx = -spd;
@@ -1348,9 +1361,11 @@ document.getElementById('diffBackBtn').addEventListener('click', () => {
   document.getElementById('startScreen').style.display = 'flex';
 });
 
-function startCpuGame(attackChance, farAttackChance) {
+function startCpuGame(attackChance, farAttackChance, moveSpeed, trackError) {
   cpuAttackChance = attackChance;
   cpuFarAttackChance = farAttackChance;
+  cpuMoveSpeed = moveSpeed;
+  cpuTrackError = trackError;
   document.getElementById('difficultyScreen').style.display = 'none';
   mode = 'cpu';
   score = { p: 0, cpu: 0 };
@@ -1361,9 +1376,9 @@ function startCpuGame(attackChance, farAttackChance) {
   requestAnimationFrame(gameLoop);
 }
 
-document.getElementById('diffAmateurBtn').addEventListener('click', () => startCpuGame(DIFFICULTY_ATTACK_CHANCE.amateur, DIFFICULTY_FAR_ATTACK_CHANCE.amateur));
-document.getElementById('diffProBtn').addEventListener('click', () => startCpuGame(DIFFICULTY_ATTACK_CHANCE.professional, DIFFICULTY_FAR_ATTACK_CHANCE.professional));
-document.getElementById('diffLegendBtn').addEventListener('click', () => startCpuGame(DIFFICULTY_ATTACK_CHANCE.legend, DIFFICULTY_FAR_ATTACK_CHANCE.legend));
+document.getElementById('diffAmateurBtn').addEventListener('click', () => startCpuGame(DIFFICULTY_ATTACK_CHANCE.amateur, DIFFICULTY_FAR_ATTACK_CHANCE.amateur, DIFFICULTY_MOVE_SPEED.amateur, DIFFICULTY_TRACK_ERROR.amateur));
+document.getElementById('diffProBtn').addEventListener('click', () => startCpuGame(DIFFICULTY_ATTACK_CHANCE.professional, DIFFICULTY_FAR_ATTACK_CHANCE.professional, DIFFICULTY_MOVE_SPEED.professional, DIFFICULTY_TRACK_ERROR.professional));
+document.getElementById('diffLegendBtn').addEventListener('click', () => startCpuGame(DIFFICULTY_ATTACK_CHANCE.legend, DIFFICULTY_FAR_ATTACK_CHANCE.legend, DIFFICULTY_MOVE_SPEED.legend, DIFFICULTY_TRACK_ERROR.legend));
 
 // ── 通信対戦メニュー ──────────────────────────────
 document.getElementById('onlineModeBtn').addEventListener('click', () => {
