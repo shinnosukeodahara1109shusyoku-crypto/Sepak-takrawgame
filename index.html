@@ -13,6 +13,9 @@
 
   /* ── タッチ操作 ── */
   #touchControls { display: none; }
+  @media (pointer: coarse) {
+    #touchControls.tc-active { display: block; }
+  }
   .touch-btn {
     position: fixed; user-select: none; touch-action: none;
     display: flex; align-items: center; justify-content: center;
@@ -31,7 +34,6 @@
   #btnJumpR  { right: 96px; bottom: 16px; width: 70px; height: 70px; font-size: 14px; }
 
   @media (pointer: coarse) {
-    #touchControls { display: block; }
     #ui { display: none; }
     body { justify-content: flex-start; padding-top: max(70px, env(safe-area-inset-top, 0px) + 56px); }
     #gameCanvas { max-height: 68vh; }
@@ -600,6 +602,10 @@ function localInput() {
 }
 
 // ── タッチ操作 ────────────────────────────────────
+function setTouchControlsVisible(show) {
+  document.getElementById('touchControls').classList.toggle('tc-active', show);
+}
+
 function bindTouchButton(id, code) {
   const el = document.getElementById(id);
   const press = e => { e.preventDefault(); keys[code] = true; el.classList.add('active'); };
@@ -1351,6 +1357,7 @@ function startCpuGame(attackChance, farAttackChance) {
   gachaShown = false;
   resetEntities();
   gameState = 'play';
+  setTouchControlsVisible(true);
   requestAnimationFrame(gameLoop);
 }
 
@@ -1416,6 +1423,7 @@ function startOnlineGame() {
   document.getElementById('startScreen').style.display = 'none';
   resetEntities();
   gameState = 'play';
+  setTouchControlsVisible(true);
 
   if (mode === 'host') {
     roomRef.child('guestInput').on('value', snap => {
@@ -1435,6 +1443,7 @@ function startOnlineGame() {
 
 // ── ガチャ画面 ────────────────────────────────────
 function showGachaScreen() {
+  setTouchControlsVisible(false);
   const output = document.getElementById('gachaOutput');
   output.innerHTML = '';
   document.getElementById('gachaHandle').classList.remove('spin');
