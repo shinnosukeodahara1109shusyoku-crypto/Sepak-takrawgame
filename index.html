@@ -475,7 +475,10 @@ document.getElementById('googleLoginBtn').addEventListener('click', () => {
 // ── 通信対戦 ──────────────────────────────────────
 let mode = 'cpu'; // 'cpu' | 'host' | 'guest'
 const DIFFICULTY_ATTACK_CHANCE = { amateur: 0.1, professional: 0.5, legend: 1.0 };
+// ネットから遠い位置でもアタックしてしまう確率（アマチュアのミスっぽい挙動）
+const DIFFICULTY_FAR_ATTACK_CHANCE = { amateur: 0.2, professional: 0, legend: 0 };
 let cpuAttackChance = DIFFICULTY_ATTACK_CHANCE.legend;
+let cpuFarAttackChance = DIFFICULTY_FAR_ATTACK_CHANCE.legend;
 let serveSide = 1; // 1: 自分側からスタート, -1: 相手側からスタート（得点ごとに交互）
 let roomRef = null;
 let remoteInput = { left:false, right:false, jump:false, down:false, kick:false, overhead:false };
@@ -590,10 +593,10 @@ function cpuAI() {
   if (cpu.kickCooldown <= 0) {
     const dx = Math.abs(cpu.x - ball.x);
     const dy = Math.abs(cpu.y - ball.y);
-    // オーバーヘッドアタックはネットを越えられるネット付近のときのみ
-    // （ネットから遠い位置で打つと自陣側に叩き込んでしまうため）
-    // さらに難易度に応じた確率でのみアタックを行い、それ以外は通常キック
-    if (!cpu.onGround && dy < 60 && dx < 70 && nearNet && cpu.attackRoll < cpuAttackChance) {
+    // オーバーヘッドアタックはネット付近のとき、難易度に応じた確率でのみ実行
+    // （アマチュアはネットから遠い時にもまれにアタックしてしまい、ミスにつながる）
+    const farAttack = !nearNet && cpu.attackRoll < cpuFarAttackChance;
+    if (!cpu.onGround && dy < 60 && dx < 70 && ((nearNet && cpu.attackRoll < cpuAttackChance) || farAttack)) {
       doOverhead(cpu);
     } else if (dx < 65 && dy < 65) {
       doKick(cpu);
@@ -1231,8 +1234,9 @@ document.getElementById('diffBackBtn').addEventListener('click', () => {
   document.getElementById('startScreen').style.display = 'flex';
 });
 
-function startCpuGame(attackChance) {
+function startCpuGame(attackChance, farAttackChance) {
   cpuAttackChance = attackChance;
+  cpuFarAttackChance = farAttackChance;
   document.getElementById('difficultyScreen').style.display = 'none';
   mode = 'cpu';
   score = { p: 0, cpu: 0 };
@@ -1242,9 +1246,9 @@ function startCpuGame(attackChance) {
   requestAnimationFrame(gameLoop);
 }
 
-document.getElementById('diffAmateurBtn').addEventListener('click', () => startCpuGame(DIFFICULTY_ATTACK_CHANCE.amateur));
-document.getElementById('diffProBtn').addEventListener('click', () => startCpuGame(DIFFICULTY_ATTACK_CHANCE.professional));
-document.getElementById('diffLegendBtn').addEventListener('click', () => startCpuGame(DIFFICULTY_ATTACK_CHANCE.legend));
+document.getElementById('diffAmateurBtn').addEventListener('click', () => startCpuGame(DIFFICULTY_ATTACK_CHANCE.amateur, DIFFICULTY_FAR_ATTACK_CHANCE.amateur));
+document.getElementById('diffProBtn').addEventListener('click', () => startCpuGame(DIFFICULTY_ATTACK_CHANCE.professional, DIFFICULTY_FAR_ATTACK_CHANCE.professional));
+document.getElementById('diffLegendBtn').addEventListener('click', () => startCpuGame(DIFFICULTY_ATTACK_CHANCE.legend, DIFFICULTY_FAR_ATTACK_CHANCE.legend));
 
 // ── 通信対戦メニュー ──────────────────────────────
 document.getElementById('onlineModeBtn').addEventListener('click', () => {
