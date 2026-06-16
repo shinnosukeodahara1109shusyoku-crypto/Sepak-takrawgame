@@ -41,14 +41,21 @@
   }
   #startScreen {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,10,0.92); display: flex; flex-direction: column;
+    background: url('assets/title_bg.png') center center / cover no-repeat;
+    display: flex; flex-direction: column;
     align-items: center; justify-content: center; color: #fff;
   }
-  #startScreen h1 { font-size: 48px; color: #f90; text-shadow: 0 0 20px #f90, 0 0 40px #f60; margin-bottom: 10px; }
+  #startScreen::before {
+    content: ''; position: absolute; inset: 0;
+    background: rgba(0,0,0,0.45);
+  }
+  #startScreen > * { position: relative; z-index: 1; }
+  #startScreen h1 { font-size: 52px; color: #fff; text-shadow: 0 0 24px #f90, 0 0 48px #f60, 2px 2px 8px #000; margin-bottom: 4px; letter-spacing: 4px; }
+  #startScreen h2.title-en { font-size: 28px; color: #ffd700; text-shadow: 0 0 16px #f90, 2px 2px 6px #000; margin-bottom: 14px; letter-spacing: 6px; font-style: italic; }
   #startScreen h1#titleText { opacity: 0; transition: opacity 2.2s ease-in; }
   #startScreen h1#titleText.title-show { opacity: 1; }
   #startScreen p { font-size: 16px; color: #aaf; margin: 4px 0; }
-  #startScreen .controls { margin: 20px 0; background: rgba(255,255,255,0.05); padding: 16px 28px; border-radius: 10px; }
+  #startScreen .controls { margin: 20px 0; background: rgba(0,0,0,0.5); padding: 16px 28px; border-radius: 10px; backdrop-filter: blur(4px); }
   #startScreen .controls h3 { color: #ff9; margin-bottom: 8px; }
   #startBtn { margin-top: 24px; padding: 12px 40px; font-size: 20px; background: #f60; color: #fff; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 0 20px #f60; transition: transform 0.1s; }
   #startBtn:hover { transform: scale(1.05); }
@@ -213,6 +220,7 @@
 
 <div id="startScreen">
   <h1 id="titleText">セパタクロー</h1>
+  <h2 class="title-en">Sepak Takraw</h2>
   <div class="controls">
     <h3>操作方法</h3>
     <p>← → ：移動</p>
