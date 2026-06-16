@@ -845,7 +845,23 @@ function showPoint(msg, next) {
   pointMsg = msg;
   pointTimer = next === 'gameover' ? 180 : 90;
   gameState = next === 'gameover' ? 'gameover' : 'point';
-  if (next === 'gameover') playSynthesizedSound('win');
+  if (next === 'gameover') {
+    playSynthesizedSound('win');
+    // プレイログ書き込み（終了）
+    if (db && currentGameLogKey) {
+      const winner = score.p > score.cpu ? 'player' : 'cpu';
+      const durationSec = currentGameStartTime ? Math.round((Date.now() - currentGameStartTime) / 1000) : null;
+      db.ref('play_logs/' + currentGameLogKey).update({
+        endedAt: new Date().toISOString(),
+        scorePlayer: score.p,
+        scoreCpu: score.cpu,
+        winner: winner,
+        durationSec: durationSec,
+        result: 'finished',
+      });
+      currentGameLogKey = null;
+    }
+  }
 }
 
 function resetAfterPoint() {
@@ -1370,10 +1386,17 @@ document.getElementById('diffBackBtn').addEventListener('click', () => {
   document.getElementById('startScreen').style.display = 'flex';
 });
 
+let currentGameLogKey = null;
+let currentGameDifficulty = 'professional';
+let currentGameStartTime = null;
+
 function startCpuGame(attackChance, farAttackChance, moveSpeed) {
   cpuAttackChance = attackChance;
   cpuFarAttackChance = farAttackChance;
   cpuMoveSpeed = moveSpeed;
+  if (attackChance === DIFFICULTY_ATTACK_CHANCE.amateur) currentGameDifficulty = 'amateur';
+  else if (attackChance === DIFFICULTY_ATTACK_CHANCE.legend) currentGameDifficulty = 'legend';
+  else currentGameDifficulty = 'professional';
   document.getElementById('difficultyScreen').style.display = 'none';
   mode = 'cpu';
   score = { p: 0, cpu: 0 };
@@ -1381,6 +1404,18 @@ function startCpuGame(attackChance, farAttackChance, moveSpeed) {
   resetEntities();
   gameState = 'play';
   setTouchControlsVisible(true);
+  // プレイログ書き込み（開始）
+  currentGameStartTime = Date.now();
+  if (db) {
+    const logRef = db.ref('play_logs').push();
+    currentGameLogKey = logRef.key;
+    logRef.set({
+      startedAt: new Date().toISOString(),
+      difficulty: currentGameDifficulty,
+      uid: currentUser ? currentUser.uid : 'anonymous',
+      result: 'in_progress',
+    });
+  }
   requestAnimationFrame(gameLoop);
 }
 
