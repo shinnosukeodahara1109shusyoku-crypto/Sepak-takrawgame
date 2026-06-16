@@ -64,7 +64,7 @@
   #backBtn { margin-top: 8px; padding: 6px 20px; background: #555; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
 
   /* ── ガチャ ── */
-  #gachaScreen, #collectionScreen, #difficultyScreen {
+  #gachaScreen, #collectionScreen, #difficultyScreen, #characterSelectScreen {
     position: fixed; inset: 0; z-index: 300;
     background: rgba(0,0,5,0.9);
     display: none; flex-direction: column; align-items: center; justify-content: center;
@@ -251,6 +251,13 @@
   <button class="mode-btn" id="diffProBtn">プロフェッショナル</button>
   <button class="mode-btn" id="diffLegendBtn">レジェンド</button>
   <button class="mode-btn" id="diffBackBtn">戻る</button>
+</div>
+
+<!-- ── キャラクター選択 ── -->
+<div id="characterSelectScreen">
+  <h2 class="gacha-title">キャラクターを選択</h2>
+  <div class="collection-grid" id="characterSelectGrid"></div>
+  <button class="mode-btn" id="charSelectBackBtn">戻る</button>
 </div>
 
 <!-- ── 勝利ガチャ ── -->
@@ -1044,6 +1051,29 @@ function drawPlayer(ent) {
   const scale = ent.facing;
   ctx.scale(scale * 1.4, 1.4); // キャラクターの大きさ（2倍 × 0.7）
 
+  // キャラクター画像モード（プレイヤーのみ）
+  if (selectedCharacter && ent.isPlayer && selectedCharacter.img && selectedCharacter.img.complete) {
+    // 影
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 18, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    const kickBase = isOverhead ? 14 : 10;
+    const kickPow = ent.kickEffect > 0 ? Math.min(1, ent.kickEffect / kickBase) : 0;
+    ctx.save();
+    if (isOverhead) {
+      ctx.translate(0, -PLAYER_H);
+      ctx.rotate(Math.PI);
+    } else if (kickPow > 0) {
+      ctx.rotate(-0.35 * kickPow);
+    }
+    const imgW = 44, imgH = PLAYER_H + 8;
+    ctx.drawImage(selectedCharacter.img, -imgW / 2, -imgH, imgW, imgH);
+    ctx.restore();
+    ctx.restore();
+    return;
+  }
+
   // オーバーヘッド時は体をその場で反転（頭が下、足が上のシザーズキック姿勢）
   if (isOverhead) {
     ctx.save();
@@ -1389,22 +1419,67 @@ document.getElementById('diffBackBtn').addEventListener('click', () => {
 let currentGameLogKey = null;
 let currentGameDifficulty = 'professional';
 let currentGameStartTime = null;
+let selectedCharacter = null; // { id, img } or null
+let pendingDifficulty = null; // { attackChance, farAttackChance, moveSpeed }
+
+// キャラ画像のプリロード
+const charImages = {};
+CAPSULE_TYPES.forEach(t => {
+  if (t.image) {
+    const img = new Image();
+    img.src = t.image;
+    charImages[t.id] = img;
+  }
+});
 
 function startCpuGame(attackChance, farAttackChance, moveSpeed) {
+  pendingDifficulty = { attackChance, farAttackChance, moveSpeed };
+  document.getElementById('difficultyScreen').style.display = 'none';
+  renderCharacterSelect();
+  document.getElementById('characterSelectScreen').style.display = 'flex';
+}
+
+function renderCharacterSelect() {
+  const collection = loadCollection();
+  const grid = document.getElementById('characterSelectGrid');
+  grid.innerHTML = '';
+
+  // デフォルト（棒人間）
+  const defaultItem = document.createElement('div');
+  defaultItem.className = 'collection-item clickable';
+  defaultItem.innerHTML = `<div class="collection-capsule" style="--c:#aaa"></div><div class="collection-name">デフォルト</div>`;
+  defaultItem.addEventListener('click', () => confirmCharacterAndStart(null));
+  grid.appendChild(defaultItem);
+
+  // 所持キャラのみ表示
+  CAPSULE_TYPES.forEach(t => {
+    const count = collection[t.id] || 0;
+    if (count === 0) return;
+    const item = document.createElement('div');
+    item.className = 'collection-item clickable';
+    item.innerHTML = `<img src="${t.image}" alt="${t.name}" class="collection-capsule-img"><div class="collection-name">${t.name}</div>`;
+    item.addEventListener('click', () => confirmCharacterAndStart(t.id));
+    grid.appendChild(item);
+  });
+}
+
+function confirmCharacterAndStart(charId) {
+  selectedCharacter = charId ? { id: charId, img: charImages[charId] } : null;
+  document.getElementById('characterSelectScreen').style.display = 'none';
+
+  const { attackChance, farAttackChance, moveSpeed } = pendingDifficulty;
   cpuAttackChance = attackChance;
   cpuFarAttackChance = farAttackChance;
   cpuMoveSpeed = moveSpeed;
   if (attackChance === DIFFICULTY_ATTACK_CHANCE.amateur) currentGameDifficulty = 'amateur';
   else if (attackChance === DIFFICULTY_ATTACK_CHANCE.legend) currentGameDifficulty = 'legend';
   else currentGameDifficulty = 'professional';
-  document.getElementById('difficultyScreen').style.display = 'none';
   mode = 'cpu';
   score = { p: 0, cpu: 0 };
   gachaShown = false;
   resetEntities();
   gameState = 'play';
   setTouchControlsVisible(true);
-  // プレイログ書き込み（開始）
   currentGameStartTime = Date.now();
   if (db) {
     const logRef = db.ref('play_logs').push();
@@ -1418,6 +1493,11 @@ function startCpuGame(attackChance, farAttackChance, moveSpeed) {
   }
   requestAnimationFrame(gameLoop);
 }
+
+document.getElementById('charSelectBackBtn').addEventListener('click', () => {
+  document.getElementById('characterSelectScreen').style.display = 'none';
+  document.getElementById('difficultyScreen').style.display = 'flex';
+});
 
 document.getElementById('diffAmateurBtn').addEventListener('click', () => startCpuGame(DIFFICULTY_ATTACK_CHANCE.amateur, DIFFICULTY_FAR_ATTACK_CHANCE.amateur, DIFFICULTY_MOVE_SPEED.amateur));
 document.getElementById('diffProBtn').addEventListener('click', () => startCpuGame(DIFFICULTY_ATTACK_CHANCE.professional, DIFFICULTY_FAR_ATTACK_CHANCE.professional, DIFFICULTY_MOVE_SPEED.professional));
