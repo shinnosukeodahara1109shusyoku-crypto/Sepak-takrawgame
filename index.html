@@ -1069,7 +1069,7 @@ function drawPlayer(ent) {
     } else if (kickPow > 0) {
       ctx.rotate(-0.35 * kickPow);
     }
-    const imgW = 44, imgH = PLAYER_H + 8;
+    const imgW = 52, imgH = PLAYER_H * 1.7;
     ctx.drawImage(selectedCharacter.img, -imgW / 2, -imgH, imgW, imgH);
     ctx.restore();
     ctx.restore();
