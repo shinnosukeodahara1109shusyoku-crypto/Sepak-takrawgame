@@ -1069,8 +1069,10 @@ function drawPlayer(ent) {
     } else if (kickPow > 0) {
       ctx.rotate(-0.35 * kickPow);
     }
-    const imgW = 52, imgH = PLAYER_H * 1.7;
-    ctx.drawImage(selectedCharacter.img, -imgW / 2, -imgH, imgW, imgH);
+    const imgH = PLAYER_H * 2.5;
+    const imgW = imgH * (selectedCharacter.img.naturalWidth / selectedCharacter.img.naturalHeight);
+    const groundOffset = imgH * 0.06; // 画像下部の余白分だけ下にずらして足を地面に合わせる
+    ctx.drawImage(selectedCharacter.img, -imgW / 2, -imgH + groundOffset, imgW, imgH);
     ctx.restore();
     ctx.restore();
     return;
