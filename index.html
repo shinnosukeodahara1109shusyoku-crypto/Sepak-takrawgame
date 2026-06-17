@@ -1085,15 +1085,19 @@ function sampleKF(keys, p) {
   }
   return keys[keys.length - 1].v;
 }
-// オーバーヘッドキック 7フェーズのキーフレーム（角度°）
-// 踏み切り→腰回転開始→上半身の反り→蹴り脚加速→インパクト→フォロースルー→着地
+// オーバーヘッドキック（自転車キック）のキーフレーム（角度°）
+// 踏み切り→回転→p=0.5で完全逆さ＆全身伸展（インパクトの決めポーズ）→回転→着地
 const OH_KF = {
-  pelvis: [{p:0,v:0},{p:0.15,v:-10},{p:0.30,v:50},{p:0.50,v:130},{p:0.68,v:190},{p:0.82,v:255},{p:0.92,v:320},{p:1,v:360}],
-  spine:  [{p:0,v:0},{p:0.15,v:8},{p:0.30,v:-22},{p:0.50,v:-32},{p:0.68,v:-8},{p:0.82,v:8},{p:1,v:0}],
-  thigh:  [{p:0,v:10},{p:0.15,v:35},{p:0.30,v:20},{p:0.50,v:-70},{p:0.68,v:-155},{p:0.82,v:-120},{p:1,v:10}],
-  shin:   [{p:0,v:25},{p:0.15,v:55},{p:0.30,v:70},{p:0.50,v:80},{p:0.68,v:15},{p:0.82,v:45},{p:1,v:25}],
-  sThigh: [{p:0,v:-5},{p:0.15,v:40},{p:0.30,v:25},{p:0.50,v:-25},{p:0.68,v:-45},{p:0.82,v:-20},{p:1,v:0}],
-  sShin:  [{p:0,v:15},{p:0.15,v:35},{p:0.30,v:30},{p:0.50,v:25},{p:0.68,v:30},{p:0.82,v:45},{p:1,v:15}],
+  // p=0.5 で 180°（頭が真下＝完全逆さ）、その後 360°（直立）まで回りきる
+  pelvis: [{p:0,v:0},{p:0.15,v:-15},{p:0.30,v:70},{p:0.50,v:180},{p:0.70,v:290},{p:0.85,v:340},{p:1,v:360}],
+  // 背中の反り（インパクトで最大）
+  spine:  [{p:0,v:0},{p:0.15,v:6},{p:0.30,v:-16},{p:0.50,v:-32},{p:0.70,v:-12},{p:1,v:0}],
+  // 蹴り脚（前）：インパクトで一直線に伸展（≈0で体の延長＝世界では真上に伸びる）
+  thigh:  [{p:0,v:10},{p:0.30,v:-35},{p:0.50,v:0},{p:0.70,v:-55},{p:0.85,v:-30},{p:1,v:10}],
+  shin:   [{p:0,v:25},{p:0.30,v:55},{p:0.50,v:3},{p:0.70,v:35},{p:1,v:25}],
+  // 支え脚（後ろ）：インパクトで折りたたむ（タック）
+  sThigh: [{p:0,v:-5},{p:0.30,v:35},{p:0.50,v:-38},{p:0.70,v:25},{p:1,v:0}],
+  sShin:  [{p:0,v:15},{p:0.30,v:50},{p:0.50,v:78},{p:0.70,v:45},{p:1,v:15}],
   armB:   [{p:0,v:-8},{p:0.30,v:-50},{p:0.50,v:-75},{p:0.68,v:-85},{p:0.82,v:-50},{p:1,v:-8}],
   armF:   [{p:0,v:8},{p:0.30,v:50},{p:0.50,v:70},{p:0.68,v:80},{p:0.82,v:45},{p:1,v:8}],
 };
@@ -1147,21 +1151,19 @@ function drawPlayer(ent) {
   const sock       = '#ffffff';
   const sockBand   = ent.isPlayer ? '#1a5aaa' : '#a8330f';
 
-  // ── プロポーション定義（3頭身：Head Soccer風） ──
+  // ── プロポーション定義（約4頭身：Head Soccer風アスリート体型） ──
   // 足元 y=0 基準、上がマイナス
-  const headR       = 7;          // 頭半径（小さく）
-  const headCenterY = -56;        // 頭中心
-  const neckY       = -50;        // 首の付け根
-  const shoulderY   = -46;        // 肩
-  const chestBottomY= -36;        // 胸の下端（腰の始まり）
+  const headR       = 6.5;        // 頭半径（小さめ）
+  const headCenterY = -64;        // 頭中心
+  const neckY       = -57;        // 首の付け根
+  const shoulderY   = -53;        // 肩
+  const chestBottomY= -38;        // 胸の下端（腰の始まり）
   const hipY        = -30;        // 腰
-  const shortsBottomY = -20;      // ショーツ裾
+  const shortsBottomY = -19;      // ショーツ裾
   const thighLen    = 10;         // 太もも長
   const shinLen     = 9;          // すね長
-  const upperArmLen = 8;          // 上腕長
-  const forearmLen  = 7;          // 前腕長
-  const limbW       = 3.2;        // 肢の太さ（太もも）
-  const limbWLower  = 2.8;        // 下肢の太さ
+  const upperArmLen = 9;          // 上腕長
+  const forearmLen  = 8;          // 前腕長
 
   // ── 描画専用アニメ状態（物理に未関与・drawPlayer 内で遅延初期化／更新） ──
   if (ent.landSquash === undefined) ent.landSquash = 0;
@@ -1196,7 +1198,7 @@ function drawPlayer(ent) {
   if (isOverhead && !ent._prevOH) { ent._ohAnim = 0; ent._ohHold = 0; }
   ent._prevOH = isOverhead;
   const OH_VISUAL_FRAMES = 36;     // 回転速度
-  const OH_HOLD_START = 0.45;      // 逆さ姿勢でホールドに入る進行度
+  const OH_HOLD_START = 0.50;      // 完全逆さ＝決めポーズでホールド
   const OH_HOLD_FRAMES = 12;       // ホールド時間（約0.2秒）
   if (ent._ohAnim < 1) {
     if (ent._ohAnim >= OH_HOLD_START && ent._ohHold < OH_HOLD_FRAMES) {
