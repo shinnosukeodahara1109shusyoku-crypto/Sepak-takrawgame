@@ -1438,6 +1438,7 @@ let currentGameDifficulty = 'professional';
 let currentGameStartTime = null;
 let selectedCharacter = null; // { id, img } or null
 let pendingDifficulty = null; // { attackChance, farAttackChance, moveSpeed }
+let pendingGameMode = 'cpu'; // 'cpu' or 'online'
 
 // キャラ画像のプリロード（試合中用はplayerImage優先、なければimage）
 const charImages = {};
@@ -1452,7 +1453,12 @@ CAPSULE_TYPES.forEach(t => {
 
 function startCpuGame(attackChance, farAttackChance, moveSpeed) {
   pendingDifficulty = { attackChance, farAttackChance, moveSpeed };
+  pendingGameMode = 'cpu';
   document.getElementById('difficultyScreen').style.display = 'none';
+  showCharacterSelect();
+}
+
+function showCharacterSelect() {
   renderCharacterSelect();
   document.getElementById('characterSelectScreen').style.display = 'flex';
 }
@@ -1485,6 +1491,11 @@ function confirmCharacterAndStart(charId) {
   selectedCharacter = charId ? { id: charId, img: charImages[charId] } : null;
   document.getElementById('characterSelectScreen').style.display = 'none';
 
+  if (pendingGameMode === 'online') {
+    startOnlineGame();
+    return;
+  }
+
   const { attackChance, farAttackChance, moveSpeed } = pendingDifficulty;
   cpuAttackChance = attackChance;
   cpuFarAttackChance = farAttackChance;
@@ -1514,7 +1525,11 @@ function confirmCharacterAndStart(charId) {
 
 document.getElementById('charSelectBackBtn').addEventListener('click', () => {
   document.getElementById('characterSelectScreen').style.display = 'none';
-  document.getElementById('difficultyScreen').style.display = 'flex';
+  if (pendingGameMode === 'online') {
+    document.getElementById('onlineMenu').style.display = 'flex';
+  } else {
+    document.getElementById('difficultyScreen').style.display = 'flex';
+  }
 });
 
 document.getElementById('diffAmateurBtn').addEventListener('click', () => startCpuGame(DIFFICULTY_ATTACK_CHANCE.amateur, DIFFICULTY_FAR_ATTACK_CHANCE.amateur, DIFFICULTY_MOVE_SPEED.amateur));
@@ -1551,7 +1566,9 @@ document.getElementById('createRoomBtn').addEventListener('click', () => {
   roomRef.child('guestJoined').on('value', snap => {
     if (snap.val() === true) {
       roomRef.child('guestJoined').off();
-      startOnlineGame();
+      pendingGameMode = 'online';
+      document.getElementById('onlineMenu').style.display = 'none';
+      showCharacterSelect();
     }
   });
 });
@@ -1571,7 +1588,9 @@ document.getElementById('joinRoomBtn').addEventListener('click', () => {
     roomRef = ref;
     mode = 'guest';
     roomRef.update({ guestJoined: true });
-    startOnlineGame();
+    pendingGameMode = 'online';
+    document.getElementById('onlineMenu').style.display = 'none';
+    showCharacterSelect();
   });
 });
 
