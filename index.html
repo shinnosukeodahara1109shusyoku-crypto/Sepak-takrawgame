@@ -1174,25 +1174,24 @@ function drawPlayer(ent) {
 
   // ── オーバーヘッド描画アニメ（物理タイマーと独立） ──
   // 描画専用カウンター _ohAnim を 0→1 まで進める。
-  // 逆さ姿勢（p≈0.5）付近でホールド（一時停止）を入れてオーバーヘッド感を出す。
+  // 逆さ姿勢（p≈0.45）でホールド（一時停止）を入れてオーバーヘッド感を出す。
   if (ent._ohAnim === undefined) ent._ohAnim = 1;
-  if (ent._prevOH === undefined) ent._prevOH = false;
-  if (isOverhead && !ent._prevOH) ent._ohAnim = 0;
-  ent._prevOH = isOverhead;
-  const OH_VISUAL_FRAMES = 36; // 回転速度（元のテンポに近い）
-  // ホールド：逆さ付近(0.45〜0.60)で進行を止め、インパクトの形を見せる
-  const OH_HOLD_START = 0.45, OH_HOLD_END = 0.60;
   if (ent._ohHold === undefined) ent._ohHold = 0;
+  if (ent._prevOH === undefined) ent._prevOH = false;
+  // 新規アタック開始時のみリセット（物理タイマーには依存しない）
+  if (isOverhead && !ent._prevOH) { ent._ohAnim = 0; ent._ohHold = 0; }
+  ent._prevOH = isOverhead;
+  const OH_VISUAL_FRAMES = 36;     // 回転速度
+  const OH_HOLD_START = 0.45;      // 逆さ姿勢でホールドに入る進行度
+  const OH_HOLD_FRAMES = 12;       // ホールド時間（約0.2秒）
   if (ent._ohAnim < 1) {
-    if (ent._ohAnim >= OH_HOLD_START && ent._ohHold < 12) {
-      // ホールド中：12フレーム（約0.2秒）止まる
+    if (ent._ohAnim >= OH_HOLD_START && ent._ohHold < OH_HOLD_FRAMES) {
       ent._ohHold++;
-      ent._ohAnim = OH_HOLD_START;
+      ent._ohAnim = OH_HOLD_START; // ホールド位置で固定
     } else {
       ent._ohAnim = Math.min(1, ent._ohAnim + 1 / OH_VISUAL_FRAMES);
     }
   }
-  if (ent._ohAnim >= 1 || (!isOverhead && !ent._prevOH)) ent._ohHold = 0;
   const ohActive = ent._ohAnim < 1;
 
   if (ohActive) {
