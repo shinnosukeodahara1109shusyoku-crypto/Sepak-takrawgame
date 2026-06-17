@@ -1056,148 +1056,144 @@ function generatePlayerParts(isPlayer) {
   const shoe       = '#202020';
   const parts = {};
 
-  // 頭パーツ (16x18 center at 8,10)
-  parts.head = generatePartCanvas(16, 18, (pc, w, h) => {
-    const cx = 8, cy = 10, r = 6.5;
+  // 頭パーツ (24x26 center at 12,14)
+  parts.head = generatePartCanvas(24, 26, (pc, w, h) => {
+    const cx = 12, cy = 14, r = 10;
     // 髪（後ろ）
     pc.fillStyle = hair;
-    pc.beginPath(); pc.ellipse(cx, cy - 1.5, r + 1, r * 1.0, 0, Math.PI, Math.PI * 2); pc.fill();
-    pc.fillRect(cx - r - 1, cy - 3, (r + 1) * 2, 4);
+    pc.beginPath(); pc.ellipse(cx, cy - 2, r + 1.5, r * 0.95, 0, Math.PI, Math.PI * 2); pc.fill();
+    pc.fillRect(cx - r - 1.5, cy - 4, (r + 1.5) * 2, 5);
     // 顔
-    const faceGrad = pc.createRadialGradient(cx - 1, cy - 1, 0, cx, cy, r * 1.1);
+    const faceGrad = pc.createRadialGradient(cx - 1, cy - 2, 0, cx, cy, r * 1.1);
     faceGrad.addColorStop(0, '#ffe0c0'); faceGrad.addColorStop(1, skin);
     pc.fillStyle = faceGrad;
     pc.beginPath(); pc.ellipse(cx, cy, r, r * 1.1, 0, 0, Math.PI * 2); pc.fill();
     // 頬のハイライト
     pc.fillStyle = 'rgba(255,200,180,0.4)';
-    pc.beginPath(); pc.arc(cx + 4, cy + 1, 2.5, 0, Math.PI * 2); pc.fill();
+    pc.beginPath(); pc.arc(cx + 5, cy + 2, 3.5, 0, Math.PI * 2); pc.fill();
     // サイド髪
     pc.fillStyle = hair;
-    pc.fillRect(cx - r - 1, cy - 3, 2.5, 6);
-    pc.fillRect(cx + r - 1.5, cy - 3, 2.5, 6);
+    pc.fillRect(cx - r - 1.5, cy - 4, 3, 8);
+    pc.fillRect(cx + r - 1.5, cy - 4, 3, 8);
     // 白目
     pc.fillStyle = '#fff';
-    pc.beginPath(); pc.ellipse(cx + 3, cy - 1, 2.5, 2.2, 0, 0, Math.PI * 2); pc.fill();
+    pc.beginPath(); pc.ellipse(cx + 4, cy - 1, 3.5, 3, 0, 0, Math.PI * 2); pc.fill();
     // 虹彩
     pc.fillStyle = '#4a3520';
-    pc.beginPath(); pc.arc(cx + 3.5, cy - 0.5, 1.6, 0, Math.PI * 2); pc.fill();
+    pc.beginPath(); pc.arc(cx + 5, cy - 0.5, 2.2, 0, Math.PI * 2); pc.fill();
     // 瞳孔
     pc.fillStyle = '#1a1a1a';
-    pc.beginPath(); pc.arc(cx + 3.5, cy - 0.5, 0.8, 0, Math.PI * 2); pc.fill();
+    pc.beginPath(); pc.arc(cx + 5, cy - 0.5, 1.1, 0, Math.PI * 2); pc.fill();
     // ハイライト
     pc.fillStyle = '#fff';
-    pc.beginPath(); pc.arc(cx + 4.2, cy - 1.3, 0.6, 0, Math.PI * 2); pc.fill();
-    // 眉
-    pc.strokeStyle = hair; pc.lineWidth = 1.4; pc.lineCap = 'round';
-    pc.beginPath(); pc.moveTo(cx + 1, cy - 3.8); pc.lineTo(cx + 5.5, cy - 4.2); pc.stroke();
+    pc.beginPath(); pc.arc(cx + 6, cy - 1.8, 0.9, 0, Math.PI * 2); pc.fill();
+    // 眉（太く力強く）
+    pc.strokeStyle = hair; pc.lineWidth = 2; pc.lineCap = 'round';
+    pc.beginPath(); pc.moveTo(cx + 1, cy - 5); pc.lineTo(cx + 8, cy - 5.5); pc.stroke();
     // 口
-    pc.strokeStyle = '#c07060'; pc.lineWidth = 0.9; pc.lineCap = 'round';
-    pc.beginPath(); pc.arc(cx + 3, cy + 3.2, 1.8, 0.1, Math.PI - 0.1); pc.stroke();
+    pc.strokeStyle = '#c07060'; pc.lineWidth = 1.2; pc.lineCap = 'round';
+    pc.beginPath(); pc.arc(cx + 4, cy + 4.5, 2.5, 0.1, Math.PI - 0.1); pc.stroke();
     // 耳
     pc.fillStyle = skin;
-    pc.beginPath(); pc.ellipse(cx - r + 0.5, cy, 1.8, 2.5, 0, 0, Math.PI * 2); pc.fill();
-    pc.strokeStyle = skinDark; pc.lineWidth = 0.5;
-    pc.beginPath(); pc.arc(cx - r + 0.8, cy, 1.2, -0.5, 1.5); pc.stroke();
+    pc.beginPath(); pc.ellipse(cx - r + 0.5, cy, 2.5, 3.5, 0, 0, Math.PI * 2); pc.fill();
+    pc.strokeStyle = skinDark; pc.lineWidth = 0.6;
+    pc.beginPath(); pc.arc(cx - r + 1, cy, 1.8, -0.5, 1.5); pc.stroke();
   });
 
-  // 胴体パーツ (24x18 center at 12,0)  shoulderY=-53 to chestBottomY=-38 → height=15+waist3=18
-  parts.torso = generatePartCanvas(24, 20, (pc, w, h) => {
-    // 胸（台形）
+  // 胴体パーツ (28x20 center at 14,0)
+  parts.torso = generatePartCanvas(28, 20, (pc, w, h) => {
     const grad = pc.createLinearGradient(0, 0, 0, 15);
     grad.addColorStop(0, jerseyLight); grad.addColorStop(0.3, jersey); grad.addColorStop(1, jerseyDark);
     pc.fillStyle = grad;
     pc.beginPath();
-    pc.moveTo(1, 0); pc.lineTo(23, 0); pc.lineTo(22, 15); pc.lineTo(2, 15);
+    pc.moveTo(1, 0); pc.lineTo(27, 0); pc.lineTo(26, 15); pc.lineTo(2, 15);
     pc.closePath(); pc.fill();
     // 襟（V字）
     pc.fillStyle = jerseyDark;
-    pc.beginPath(); pc.moveTo(8, 0); pc.lineTo(12, 5); pc.lineTo(16, 0); pc.closePath(); pc.fill();
+    pc.beginPath(); pc.moveTo(10, 0); pc.lineTo(14, 5); pc.lineTo(18, 0); pc.closePath(); pc.fill();
     // 肩ライン
-    pc.fillStyle = jerseyLight; pc.fillRect(1, 0, 22, 1.8);
+    pc.fillStyle = jerseyLight; pc.fillRect(1, 0, 26, 2);
     // 脇シャドウ
     pc.fillStyle = 'rgba(0,0,0,0.15)';
-    pc.fillRect(1, 3, 3, 12); pc.fillRect(20, 3, 3, 12);
+    pc.fillRect(1, 3, 4, 12); pc.fillRect(23, 3, 4, 12);
     // ゼッケン
-    pc.fillStyle = '#fff'; pc.font = 'bold 9px Arial'; pc.textAlign = 'center';
-    pc.fillText(isPlayer ? '1' : '2', 12, 13);
+    pc.fillStyle = '#fff'; pc.font = 'bold 10px Arial'; pc.textAlign = 'center';
+    pc.fillText(isPlayer ? '1' : '2', 14, 13);
     // 腰ベルト
     const beltGrad = pc.createLinearGradient(0, 15, 0, 20);
     beltGrad.addColorStop(0, jerseyDark); beltGrad.addColorStop(1, shorts);
     pc.fillStyle = beltGrad;
-    pc.beginPath(); pc.roundRect(2, 15, 20, 5, 1); pc.fill();
+    pc.beginPath(); pc.roundRect(2, 15, 24, 5, 1); pc.fill();
   });
 
-  // ショーツパーツ (22x13 center at 11,0)
-  parts.hip = generatePartCanvas(22, 13, (pc, w, h) => {
-    const grad = pc.createLinearGradient(0, 0, 0, 13);
+  // ショーツパーツ (26x12)
+  parts.hip = generatePartCanvas(26, 12, (pc, w, h) => {
+    const grad = pc.createLinearGradient(0, 0, 0, 12);
     grad.addColorStop(0, shorts); grad.addColorStop(1, shortsDark);
     pc.fillStyle = grad;
-    pc.beginPath(); pc.roundRect(0, 0, 22, 13, 3); pc.fill();
-    // サイドライン
-    pc.fillStyle = shortsDark; pc.fillRect(0, 0, 2.5, 13); pc.fillRect(19.5, 0, 2.5, 13);
-    // 裾のハイライト
-    pc.fillStyle = 'rgba(255,255,255,0.08)'; pc.fillRect(2, 10, 18, 2);
+    pc.beginPath(); pc.roundRect(0, 0, 26, 12, 3); pc.fill();
+    pc.fillStyle = shortsDark; pc.fillRect(0, 0, 3, 12); pc.fillRect(23, 0, 3, 12);
+    pc.fillStyle = 'rgba(255,255,255,0.08)'; pc.fillRect(3, 9, 20, 2);
   });
 
-  // 太ももパーツ (9x12 center at 4.5,0) - skin色
-  parts.thigh = generatePartCanvas(9, 12, (pc, w, h) => {
-    const grad = pc.createLinearGradient(0, 0, 9, 0);
+  // 太ももパーツ (12x10) - skin色、太め
+  parts.thigh = generatePartCanvas(12, 10, (pc, w, h) => {
+    const grad = pc.createLinearGradient(0, 0, 12, 0);
     grad.addColorStop(0, skinDark); grad.addColorStop(0.4, skin); grad.addColorStop(1, skinDark);
     pc.fillStyle = grad;
-    pc.beginPath(); pc.roundRect(1, 0, 7, 12, [3, 3, 2, 2]); pc.fill();
+    pc.beginPath(); pc.roundRect(1, 0, 10, 10, [4, 4, 3, 3]); pc.fill();
   });
 
-  // すねパーツ (8x11 center at 4,0) - sock + band
-  parts.shin = generatePartCanvas(8, 11, (pc, w, h) => {
-    // ソックス
-    const grad = pc.createLinearGradient(0, 0, 8, 0);
-    grad.addColorStop(0, '#e8e8e8'); grad.addColorStop(0.4, sock); grad.addColorStop(1, '#e0e0e0');
+  // すねパーツ (10x9) - sock + band、太め
+  parts.shin = generatePartCanvas(10, 9, (pc, w, h) => {
+    const grad = pc.createLinearGradient(0, 0, 10, 0);
+    grad.addColorStop(0, '#e0e0e0'); grad.addColorStop(0.4, sock); grad.addColorStop(1, '#d8d8d8');
     pc.fillStyle = grad;
-    pc.beginPath(); pc.roundRect(1.2, 0, 5.6, 11, 2); pc.fill();
+    pc.beginPath(); pc.roundRect(1, 0, 8, 9, 2.5); pc.fill();
     // ソックスバンド
-    pc.fillStyle = sockBand; pc.fillRect(1.5, 0, 5, 2.5);
+    pc.fillStyle = sockBand; pc.fillRect(1.5, 0, 7, 2.5);
   });
 
-  // 靴パーツ (12x7 center at 5,1)
-  parts.shoe = generatePartCanvas(12, 7, (pc, w, h) => {
-    const grad = pc.createLinearGradient(0, 0, 0, 7);
-    grad.addColorStop(0, '#303030'); grad.addColorStop(1, '#101010');
+  // 靴パーツ (14x8) - 大きめ
+  parts.shoe = generatePartCanvas(14, 8, (pc, w, h) => {
+    const grad = pc.createLinearGradient(0, 0, 0, 8);
+    grad.addColorStop(0, '#353535'); grad.addColorStop(1, '#101010');
     pc.fillStyle = grad;
     pc.beginPath();
-    pc.moveTo(1, 1); pc.lineTo(10, 1); pc.quadraticCurveTo(12, 2, 11, 4);
-    pc.lineTo(10, 5.5); pc.quadraticCurveTo(6, 7, 1, 5.5);
+    pc.moveTo(1, 1); pc.lineTo(12, 1); pc.quadraticCurveTo(14, 2.5, 13, 5);
+    pc.lineTo(12, 6.5); pc.quadraticCurveTo(7, 8, 1, 6.5);
     pc.closePath(); pc.fill();
     // ソール
-    pc.fillStyle = '#444'; pc.fillRect(1, 5, 10, 1.5);
+    pc.fillStyle = '#555'; pc.fillRect(1, 6, 12, 2);
     // ストライプ
-    pc.strokeStyle = 'rgba(255,255,255,0.3)'; pc.lineWidth = 0.8;
-    pc.beginPath(); pc.moveTo(4, 1.5); pc.lineTo(6, 5); pc.stroke();
+    pc.strokeStyle = 'rgba(255,255,255,0.35)'; pc.lineWidth = 1;
+    pc.beginPath(); pc.moveTo(5, 1.5); pc.lineTo(7, 5.5); pc.stroke();
+    pc.beginPath(); pc.moveTo(7, 1.5); pc.lineTo(9, 5.5); pc.stroke();
   });
 
-  // 上腕パーツ (9x11) - jersey色の袖
-  parts.upperArm = generatePartCanvas(9, 11, (pc, w, h) => {
-    const grad = pc.createLinearGradient(0, 0, 9, 0);
+  // 上腕パーツ (11x9) - jersey色の袖、太め
+  parts.upperArm = generatePartCanvas(11, 9, (pc, w, h) => {
+    const grad = pc.createLinearGradient(0, 0, 11, 0);
     grad.addColorStop(0, jerseyDark); grad.addColorStop(0.4, jersey); grad.addColorStop(1, jerseyDark);
     pc.fillStyle = grad;
-    pc.beginPath(); pc.roundRect(1.5, 0, 6, 11, 2.5); pc.fill();
-    // 袖口
-    pc.fillStyle = jerseyLight; pc.fillRect(2, 9, 5, 1.5);
+    pc.beginPath(); pc.roundRect(1.5, 0, 8, 9, 3); pc.fill();
+    pc.fillStyle = jerseyLight; pc.fillRect(2, 7, 7, 2);
   });
 
-  // 前腕パーツ (8x10) - skin色
-  parts.forearm = generatePartCanvas(8, 10, (pc, w, h) => {
-    const grad = pc.createLinearGradient(0, 0, 8, 0);
+  // 前腕パーツ (10x8) - skin色、太め
+  parts.forearm = generatePartCanvas(10, 8, (pc, w, h) => {
+    const grad = pc.createLinearGradient(0, 0, 10, 0);
     grad.addColorStop(0, skinDark); grad.addColorStop(0.35, skin); grad.addColorStop(1, skinDark);
     pc.fillStyle = grad;
-    pc.beginPath(); pc.roundRect(1.5, 0, 5, 10, 2); pc.fill();
+    pc.beginPath(); pc.roundRect(1.5, 0, 7, 8, 2.5); pc.fill();
   });
 
-  // 手パーツ (7x7)
-  parts.hand = generatePartCanvas(7, 7, (pc, w, h) => {
+  // 手パーツ (8x8) - 大きめ
+  parts.hand = generatePartCanvas(8, 8, (pc, w, h) => {
     pc.fillStyle = skin;
-    pc.beginPath(); pc.ellipse(3.5, 3.5, 3, 3, 0, 0, Math.PI * 2); pc.fill();
+    pc.beginPath(); pc.ellipse(4, 4, 3.5, 3.5, 0, 0, Math.PI * 2); pc.fill();
     pc.fillStyle = skinDark;
-    pc.beginPath(); pc.ellipse(3.5, 3.5, 2.8, 2.8, 0, Math.PI * 0.6, Math.PI * 0.9); pc.fill();
+    pc.beginPath(); pc.ellipse(4, 4, 3.2, 3.2, 0, Math.PI * 0.6, Math.PI * 0.9); pc.fill();
   });
 
   // 首パーツ (6x5)
@@ -1269,18 +1265,19 @@ function sampleKF(keys, p) {
 // オーバーヘッドキック（自転車キック）のキーフレーム（角度°）
 // 踏み切り→回転→p=0.5で完全逆さ＆全身伸展（インパクトの決めポーズ）→回転→着地
 const OH_KF = {
-  // p=0.5 で 180°（頭が真下＝完全逆さ）、その後 360°（直立）まで回りきる
-  pelvis: [{p:0,v:0},{p:0.15,v:-15},{p:0.30,v:70},{p:0.50,v:180},{p:0.70,v:290},{p:0.85,v:340},{p:1,v:360}],
-  // 背中の反り（インパクトで最大）
-  spine:  [{p:0,v:0},{p:0.15,v:6},{p:0.30,v:-16},{p:0.50,v:-32},{p:0.70,v:-12},{p:1,v:0}],
-  // 蹴り脚（前）：インパクトで一直線に伸展（≈0で体の延長＝世界では真上に伸びる）
-  thigh:  [{p:0,v:10},{p:0.30,v:-35},{p:0.50,v:0},{p:0.70,v:-55},{p:0.85,v:-30},{p:1,v:10}],
-  shin:   [{p:0,v:25},{p:0.30,v:55},{p:0.50,v:3},{p:0.70,v:35},{p:1,v:25}],
-  // 支え脚（後ろ）：インパクトで折りたたむ（タック）
-  sThigh: [{p:0,v:-5},{p:0.30,v:35},{p:0.50,v:-38},{p:0.70,v:25},{p:1,v:0}],
-  sShin:  [{p:0,v:15},{p:0.30,v:50},{p:0.50,v:78},{p:0.70,v:45},{p:1,v:15}],
-  armB:   [{p:0,v:-8},{p:0.30,v:-50},{p:0.50,v:-75},{p:0.68,v:-85},{p:0.82,v:-50},{p:1,v:-8}],
-  armF:   [{p:0,v:8},{p:0.30,v:50},{p:0.50,v:70},{p:0.68,v:80},{p:0.82,v:45},{p:1,v:8}],
+  // 参考ゲーム準拠：p=0.40でインパクト（逆さ180°）、p=0.55-0.75でタック回収、着地
+  pelvis: [{p:0,v:0},{p:0.12,v:-20},{p:0.25,v:60},{p:0.40,v:180},{p:0.55,v:260},{p:0.70,v:320},{p:0.85,v:350},{p:1,v:360}],
+  // 背中の反り：インパクトで大きく反る（参考画像で背中が強くアーチ）、回収時に丸める
+  spine:  [{p:0,v:0},{p:0.12,v:8},{p:0.25,v:-20},{p:0.40,v:-45},{p:0.55,v:25},{p:0.70,v:35},{p:0.85,v:10},{p:1,v:0}],
+  // 蹴り脚：インパクトで完全伸展、回収時に折りたたむ（タック）
+  thigh:  [{p:0,v:10},{p:0.25,v:-40},{p:0.40,v:-5},{p:0.55,v:50},{p:0.70,v:70},{p:0.85,v:30},{p:1,v:10}],
+  shin:   [{p:0,v:25},{p:0.25,v:60},{p:0.40,v:5},{p:0.55,v:80},{p:0.70,v:90},{p:0.85,v:40},{p:1,v:25}],
+  // 支え脚：インパクトで伸ばす、回収時にタック
+  sThigh: [{p:0,v:-5},{p:0.25,v:30},{p:0.40,v:-30},{p:0.55,v:55},{p:0.70,v:65},{p:0.85,v:20},{p:1,v:0}],
+  sShin:  [{p:0,v:15},{p:0.25,v:45},{p:0.40,v:70},{p:0.55,v:95},{p:0.70,v:85},{p:0.85,v:30},{p:1,v:15}],
+  // 腕：インパクトで大きく広げ、回収時に体に沿わせる
+  armB:   [{p:0,v:-8},{p:0.25,v:-55},{p:0.40,v:-85},{p:0.55,v:-70},{p:0.70,v:-30},{p:1,v:-8}],
+  armF:   [{p:0,v:8},{p:0.25,v:55},{p:0.40,v:85},{p:0.55,v:65},{p:0.70,v:25},{p:1,v:8}],
 };
 
 function drawPlayer(ent) {
@@ -1322,18 +1319,18 @@ function drawPlayer(ent) {
   // パーツ画像取得
   const P = getPlayerParts(ent.isPlayer);
 
-  // ── プロポーション定義（約4頭身：Head Soccer風アスリート体型） ──
-  const headR       = 6.5;
-  const headCenterY = -64;
-  const neckY       = -57;
-  const shoulderY   = -53;
-  const chestBottomY= -38;
-  const hipY        = -30;
-  const shortsBottomY = -19;
-  const thighLen    = 10;
-  const shinLen     = 9;
-  const upperArmLen = 9;
-  const forearmLen  = 8;
+  // ── プロポーション定義（約2.5頭身：Head Soccer風デフォルメ体型） ──
+  const headR       = 10;
+  const headCenterY = -58;
+  const neckY       = -49;
+  const shoulderY   = -46;
+  const chestBottomY= -32;
+  const hipY        = -24;
+  const shortsBottomY = -14;
+  const thighLen    = 8;
+  const shinLen     = 7;
+  const upperArmLen = 7;
+  const forearmLen  = 6;
 
   // ── 描画専用アニメ状態（物理に未関与・drawPlayer 内で遅延初期化／更新） ──
   if (ent.landSquash === undefined) ent.landSquash = 0;
@@ -1368,7 +1365,7 @@ function drawPlayer(ent) {
   if (isOverhead && !ent._prevOH) { ent._ohAnim = 0; ent._ohHold = 0; }
   ent._prevOH = isOverhead;
   const OH_VISUAL_FRAMES = 36;     // 回転速度
-  const OH_HOLD_START = 0.50;      // 完全逆さ＝決めポーズでホールド
+  const OH_HOLD_START = 0.40;      // 完全逆さ＝決めポーズでホールド
   const OH_HOLD_FRAMES = 12;       // ホールド時間（約0.2秒）
   if (ent._ohAnim < 1) {
     if (ent._ohAnim >= OH_HOLD_START && ent._ohHold < OH_HOLD_FRAMES) {
@@ -1395,8 +1392,8 @@ function drawPlayer(ent) {
     const spreadArc = Math.sin(Math.min(1, p) * Math.PI); // 0→1→0
     const spread = 7 + 9 * spreadArc;   // 横方向の広がり
     const lift   = -2 - 5 * spreadArc;  // やや上方向（バランス）
-    const ikB = solveIK(-spread, lift, 6, 6, +1);
-    const ikF = solveIK(spread, lift, 6, 6, -1);
+    const ikB = solveIK(-spread, lift, 7, 6, +1);
+    const ikF = solveIK(spread, lift, 7, 6, -1);
     backArm = ikB.hip;  backArmKnee = ikB.knee;
     frontArm = ikF.hip; frontArmKnee = ikF.knee;
   } else {
@@ -1431,11 +1428,11 @@ function drawPlayer(ent) {
   ctx.translate(0, -hipY);
 
   // ── 脚（太もも→すね→靴、パーツ画像版） ──
-  drawLimbImg(-4, shortsBottomY, backHip, backKnee, P.thigh, P.shin, P.shoe, thighLen, shinLen);
-  drawLimbImg(4, shortsBottomY, frontHip, frontKnee, P.thigh, P.shin, P.shoe, thighLen, shinLen);
+  drawLimbImg(-5, shortsBottomY, backHip, backKnee, P.thigh, P.shin, P.shoe, thighLen, shinLen);
+  drawLimbImg(5, shortsBottomY, frontHip, frontKnee, P.thigh, P.shin, P.shoe, thighLen, shinLen);
 
   // ── ショーツ ──
-  ctx.drawImage(P.hip, -11, hipY, 22, shortsBottomY - hipY + 2);
+  ctx.drawImage(P.hip, -13, hipY, 26, shortsBottomY - hipY + 2);
 
   // ── 上半身ボーン ──
   ctx.save();
@@ -1444,11 +1441,11 @@ function drawPlayer(ent) {
   ctx.translate(0, -hipY);
 
   // ── 胴体（胸＋腰ベルト） ──
-  ctx.drawImage(P.torso, -12, shoulderY, 24, chestBottomY - shoulderY + (hipY - chestBottomY) + 2);
+  ctx.drawImage(P.torso, -14, shoulderY, 28, chestBottomY - shoulderY + (hipY - chestBottomY) + 2);
 
   // ── 腕（パーツ画像版） ──
-  drawLimbImg(-11, shoulderY + 2, backArm, backArmKnee, P.upperArm, P.forearm, P.hand, upperArmLen, forearmLen);
-  drawLimbImg(11, shoulderY + 2, frontArm, frontArmKnee, P.upperArm, P.forearm, P.hand, upperArmLen, forearmLen);
+  drawLimbImg(-14, shoulderY + 2, backArm, backArmKnee, P.upperArm, P.forearm, P.hand, upperArmLen, forearmLen);
+  drawLimbImg(14, shoulderY + 2, frontArm, frontArmKnee, P.upperArm, P.forearm, P.hand, upperArmLen, forearmLen);
 
   // ── 首 ──
   ctx.drawImage(P.neck, -3, neckY, 6, shoulderY - neckY + 1);
@@ -1465,7 +1462,7 @@ function drawPlayer(ent) {
     ctx.translate(0, -neckY);
   }
   // 頭パーツ画像
-  ctx.drawImage(P.head, -8, headCenterY - 10, 16, 18);
+  ctx.drawImage(P.head, -12, headCenterY - 14, 24, 26);
 
   ctx.restore(); // 頭ボーン
   ctx.restore(); // 上半身ボーン
