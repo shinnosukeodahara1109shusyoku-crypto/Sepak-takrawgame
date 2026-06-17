@@ -1034,18 +1034,19 @@ function drawNet() {
 // ── 描画：プレイヤー ──────────────────────────────
 // 2関節（付け根→中間関節→先端）の腕・脚を描く汎用ヘルパー
 function drawLimb(originX, originY, hipAngleDeg, kneeAngleDeg, upperLen, lowerLen, upperColor, lowerColor, capColor, capRX, capRY) {
+  const uW = 3.4, lW = 2.8; // 上肢・下肢の太さ
   ctx.save();
   ctx.translate(originX, originY);
   ctx.rotate(hipAngleDeg * Math.PI / 180);
   ctx.fillStyle = upperColor;
   ctx.beginPath();
-  ctx.roundRect(-2.6, 0, 5.2, upperLen, 2);
+  ctx.roundRect(-uW, 0, uW * 2, upperLen, 2.5);
   ctx.fill();
   ctx.translate(0, upperLen);
   ctx.rotate(kneeAngleDeg * Math.PI / 180);
   ctx.fillStyle = lowerColor;
   ctx.beginPath();
-  ctx.roundRect(-2.2, 0, 4.4, lowerLen, 2);
+  ctx.roundRect(-lW, 0, lW * 2, lowerLen, 2);
   ctx.fill();
   ctx.translate(0, lowerLen);
   ctx.fillStyle = capColor;
@@ -1103,7 +1104,7 @@ function drawPlayer(ent) {
 
   const isOverhead = ent.overheadState === 2;
   const scale = ent.facing;
-  ctx.scale(scale * 1.4, 1.4); // キャラクターの大きさ（2倍 × 0.7）
+  ctx.scale(scale * 1.3, 1.3); // キャラクターの大きさ
 
   // キャラクター画像モード（プレイヤーのみ）
   if (selectedCharacter && ent.isPlayer && selectedCharacter.img && selectedCharacter.img.complete) {
@@ -1136,18 +1137,31 @@ function drawPlayer(ent) {
   // ── 配色（ユニフォーム） ──
   const jersey     = ent.isPlayer ? '#2a7aee' : '#e0451f';
   const jerseyDark = ent.isPlayer ? '#1a5aaa' : '#a8330f';
+  const jerseyLight= ent.isPlayer ? '#5a9af4' : '#f47040';
   const shorts     = ent.isPlayer ? '#16306b' : '#5e1c08';
+  const shortsDark = ent.isPlayer ? '#0e2050' : '#401005';
   const skin       = '#f4c49a';
+  const skinDark   = '#d4a478';
   const hair       = ent.isPlayer ? '#3a2a1a' : '#241712';
   const shoe       = '#202020';
   const sock       = '#ffffff';
+  const sockBand   = ent.isPlayer ? '#1a5aaa' : '#a8330f';
 
-  // ── 各部位の基準位置（足元 y=0 基準、頭頂が PLAYER_H 上） ──
-  const shoulderY = -36;
-  const hipY = -22;
-  const shortsBottomY = -14;
-  const headCenterY = -44;
-  const headR = 8;
+  // ── プロポーション定義（3頭身：Head Soccer風） ──
+  // 足元 y=0 基準、上がマイナス
+  const headR       = 7;          // 頭半径（小さく）
+  const headCenterY = -56;        // 頭中心
+  const neckY       = -50;        // 首の付け根
+  const shoulderY   = -46;        // 肩
+  const chestBottomY= -36;        // 胸の下端（腰の始まり）
+  const hipY        = -30;        // 腰
+  const shortsBottomY = -20;      // ショーツ裾
+  const thighLen    = 10;         // 太もも長
+  const shinLen     = 9;          // すね長
+  const upperArmLen = 8;          // 上腕長
+  const forearmLen  = 7;          // 前腕長
+  const limbW       = 3.2;        // 肢の太さ（太もも）
+  const limbWLower  = 2.8;        // 下肢の太さ
 
   // ── 描画専用アニメ状態（物理に未関与・drawPlayer 内で遅延初期化／更新） ──
   if (ent.landSquash === undefined) ent.landSquash = 0;
@@ -1233,89 +1247,137 @@ function drawPlayer(ent) {
   if (!ohActive) ctx.rotate(ent.bodyLean * 0.14);
 
   // 影（接地時に潰れて広がる）
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
   ctx.beginPath();
-  ctx.ellipse(0, 0, 18 * (1 + 0.3 * sq), 5, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 0, 20 * (1 + 0.3 * sq), 5, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // ── 腰ボーン：オーバーヘッドはここで腰主導の回転を行う（全身一括回転を廃止） ──
+  // ── 腰ボーン ──
   ctx.save();
   ctx.translate(0, hipY);
   ctx.rotate(pelvisRot * Math.PI / 180);
   ctx.translate(0, -hipY);
 
-  // ── 脚（下半身：腰フレーム内） ──
+  // ── 脚（太もも→すね→靴、2関節） ──
   // 後ろ脚（軸足）
-  drawLimb(-4, shortsBottomY, backHip, backKnee, 8, 6, sock, sock, shoe, 5, 3);
+  drawLimb(-4, shortsBottomY, backHip, backKnee, thighLen, shinLen, skin, sock, shoe, 5, 3);
   // 前脚（キックする脚）
-  drawLimb(4, shortsBottomY, frontHip, frontKnee, 8, 6, sock, sock, shoe, 5, 3);
+  drawLimb(4, shortsBottomY, frontHip, frontKnee, thighLen, shinLen, skin, sock, shoe, 5, 3);
 
-  // ── ショーツ ──
+  // ── ショーツ（立体的に） ──
   ctx.fillStyle = shorts;
   ctx.beginPath();
-  ctx.roundRect(-9, hipY, 18, shortsBottomY - hipY + 3, 3);
+  ctx.roundRect(-10, hipY, 20, shortsBottomY - hipY + 2, 3);
   ctx.fill();
+  // ショーツのサイドライン
+  ctx.fillStyle = shortsDark;
+  ctx.fillRect(-10, hipY, 2, shortsBottomY - hipY + 2);
+  ctx.fillRect(8, hipY, 2, shortsBottomY - hipY + 2);
 
-  // ── 上半身ボーン：脊椎の反り（腰を支点に胴・腕・頭を回す） ──
+  // ── 上半身ボーン ──
   ctx.save();
   ctx.translate(0, hipY);
   ctx.rotate(spineArch * Math.PI / 180);
   ctx.translate(0, -hipY);
 
-  // ── ユニフォーム（胴体） ──
+  // ── 腰（ベルト部分） ──
+  ctx.fillStyle = jerseyDark;
+  ctx.beginPath();
+  ctx.roundRect(-10, chestBottomY, 20, hipY - chestBottomY + 2, 2);
+  ctx.fill();
+
+  // ── 胸（ユニフォーム上半身） ──
   ctx.fillStyle = jersey;
   ctx.beginPath();
   ctx.moveTo(-11, shoulderY);
   ctx.lineTo(11, shoulderY);
-  ctx.lineTo(9, hipY + 2);
-  ctx.lineTo(-9, hipY + 2);
+  ctx.lineTo(10, chestBottomY + 1);
+  ctx.lineTo(-10, chestBottomY + 1);
   ctx.closePath();
   ctx.fill();
-  // 襟・袖のライン
+  // 襟（V字）
   ctx.fillStyle = jerseyDark;
-  ctx.fillRect(-11, shoulderY, 22, 3);
+  ctx.beginPath();
+  ctx.moveTo(-4, shoulderY);
+  ctx.lineTo(0, shoulderY + 5);
+  ctx.lineTo(4, shoulderY);
+  ctx.closePath();
+  ctx.fill();
+  // 肩ライン
+  ctx.fillStyle = jerseyLight;
+  ctx.fillRect(-11, shoulderY, 22, 1.5);
   // ゼッケン番号
   ctx.fillStyle = '#fff';
-  ctx.font = 'bold 9px Arial';
+  ctx.font = 'bold 8px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText(ent.isPlayer ? '1' : '2', 0, hipY - 4);
+  ctx.fillText(ent.isPlayer ? '1' : '2', 0, chestBottomY - 3);
+  // 脇下のシャドウ
+  ctx.fillStyle = jerseyDark;
+  ctx.globalAlpha = 0.3;
+  ctx.fillRect(-11, shoulderY + 3, 3, chestBottomY - shoulderY - 2);
+  ctx.fillRect(8, shoulderY + 3, 3, chestBottomY - shoulderY - 2);
+  ctx.globalAlpha = 1;
 
-  // ── 腕（バランス・オーバーヘッド中はIK駆動） ──
-  drawLimb(-9, shoulderY + 2, backArm, backArmKnee, 6, 6, jersey, skin, skin, 2.4, 2.4);
-  drawLimb(9, shoulderY + 2, frontArm, frontArmKnee, 6, 6, jersey, skin, skin, 2.4, 2.4);
+  // ── 腕（上腕→前腕→手） ──
+  // 後ろ腕
+  drawLimb(-11, shoulderY + 2, backArm, backArmKnee, upperArmLen, forearmLen, jersey, skin, skin, 2.6, 2.6);
+  // 前腕
+  drawLimb(11, shoulderY + 2, frontArm, frontArmKnee, upperArmLen, forearmLen, jersey, skin, skin, 2.6, 2.6);
 
-  // ── 頭ボーン：首をボールに向ける（通常時のみ。オーバーヘッド中は体に追従） ──
+  // ── 首 ──
+  ctx.fillStyle = skin;
+  ctx.beginPath();
+  ctx.roundRect(-2.5, neckY, 5, shoulderY - neckY + 1, 2);
+  ctx.fill();
+
+  // ── 頭ボーン：首をボールに向ける ──
   ctx.save();
   if (!ohActive) {
     const dxb = (ball.x - ent.x) * ent.facing;
     const dyb = ball.y - (ent.y + headCenterY * 1.4);
-    let neck = Math.atan2(dyb, Math.abs(dxb) + 20) * 0.45;
-    neck = Math.max(-0.4, Math.min(0.4, neck));
-    ctx.translate(0, headCenterY);
-    ctx.rotate(neck);
-    ctx.translate(0, -headCenterY);
+    let neckAng = Math.atan2(dyb, Math.abs(dxb) + 20) * 0.45;
+    neckAng = Math.max(-0.4, Math.min(0.4, neckAng));
+    ctx.translate(0, neckY);
+    ctx.rotate(neckAng);
+    ctx.translate(0, -neckY);
   }
-  // 頭
+  // 頭（やや楕円で人間的に）
   ctx.fillStyle = skin;
   ctx.beginPath();
-  ctx.arc(0, headCenterY, headR, 0, Math.PI * 2);
+  ctx.ellipse(0, headCenterY, headR, headR * 1.1, 0, 0, Math.PI * 2);
   ctx.fill();
-  // 髪
+  // 頬のハイライト
+  ctx.fillStyle = 'rgba(255,200,180,0.35)';
+  ctx.beginPath(); ctx.arc(4, headCenterY + 1, 2.5, 0, Math.PI * 2); ctx.fill();
+  // 髪（しっかりと）
   ctx.fillStyle = hair;
   ctx.beginPath();
-  ctx.arc(0, headCenterY - 1, headR, Math.PI, Math.PI * 2);
+  ctx.ellipse(0, headCenterY - 1.5, headR + 0.5, headR * 0.9, 0, Math.PI, Math.PI * 2);
   ctx.fill();
-  ctx.fillRect(-headR, headCenterY - 1, headR * 2, 2);
-  // 目・口
-  ctx.fillStyle = '#333';
-  ctx.beginPath(); ctx.arc(3.5, headCenterY - 1, 1.6, 0, Math.PI * 2); ctx.fill();
+  ctx.fillRect(-headR - 0.5, headCenterY - 2, headR * 2 + 1, 3);
+  // サイドの髪
+  ctx.fillRect(-headR - 0.5, headCenterY - 2, 2, 5);
+  ctx.fillRect(headR - 1.5, headCenterY - 2, 2, 5);
+  // 目（白目＋黒目＋ハイライト）
   ctx.fillStyle = '#fff';
-  ctx.beginPath(); ctx.arc(4, headCenterY - 1.5, 0.6, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = '#c88';
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(2, headCenterY + 3); ctx.lineTo(5, headCenterY + 3); ctx.stroke();
-  ctx.restore(); // 頭ボーン
+  ctx.beginPath(); ctx.ellipse(3, headCenterY - 1, 2.2, 2, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#2a2a2a';
+  ctx.beginPath(); ctx.arc(3.5, headCenterY - 0.5, 1.4, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(4, headCenterY - 1.2, 0.5, 0, Math.PI * 2); ctx.fill();
+  // 眉
+  ctx.strokeStyle = hair;
+  ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(1.5, headCenterY - 3.5); ctx.lineTo(5, headCenterY - 3.8); ctx.stroke();
+  // 口
+  ctx.strokeStyle = '#c07060';
+  ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.arc(3, headCenterY + 3, 1.5, 0.1, Math.PI - 0.1); ctx.stroke();
+  // 耳
+  ctx.fillStyle = skin;
+  ctx.beginPath(); ctx.ellipse(-headR + 0.5, headCenterY, 1.5, 2.2, 0, 0, Math.PI * 2); ctx.fill();
 
+  ctx.restore(); // 頭ボーン
   ctx.restore(); // 上半身ボーン
   ctx.restore(); // 腰ボーン
   ctx.restore(); // drawPlayer 外側
