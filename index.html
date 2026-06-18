@@ -1390,16 +1390,10 @@ function drawPlayer(ent) {
     frontKnee = sampleKF(OH_KF.shin, p);
     backHip   = sampleKF(OH_KF.sThigh, p);
     backKnee  = sampleKF(OH_KF.sShin, p);
-    // ── 第2段階：腕の2関節IK ──
-    // 手先をバランス点へ伸ばす。回転の中盤(p≈0.5)で最も大きく腕を広げ、
-    // 着地に向けて閉じる。L1=L2=6（drawLimb の腕の長さに一致）。
-    const spreadArc = Math.sin(Math.min(1, p) * Math.PI); // 0→1→0
-    const spread = 5 + 5 * spreadArc;   // 横方向の広がり
-    const lift   = -4 - 7 * spreadArc;  // やや上方向（バランス）
-    const ikB = solveIK(-spread, lift, 7, 6, +1);
-    const ikF = solveIK(spread, lift, 7, 6, -1);
-    backArm = ikB.hip;  backArmKnee = ikB.knee;
-    frontArm = ikF.hip; frontArmKnee = ikF.knee;
+    // ── 腕：万歳ではなく内側に折りたたむ（肘を曲げて胸の前へ） ──
+    const fold = Math.sin(Math.min(1, p) * Math.PI); // 0→1→0
+    backArm  = 30 * fold;  backArmKnee  = 120 * fold;
+    frontArm = -30 * fold; frontArmKnee = -120 * fold;
   } else {
     const legSwing = ent.onGround ? Math.sin(ent.limbAnim) * 16 : Math.sin(ent.limbAnim) * 6;
     const armSwing = ent.onGround ? Math.sin(ent.limbAnim + Math.PI) * 12 : 8;
