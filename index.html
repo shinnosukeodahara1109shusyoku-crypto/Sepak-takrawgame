@@ -24,15 +24,22 @@
     width: 60px; height: 60px;
   }
   .touch-btn.active { background: rgba(255,255,255,0.35); }
-  #btnLeft, #btnRight, #btnJump, #btnDown, #btnJumpLeft, #btnJumpRight { font-family: Arial, sans-serif; font-size: 24px; }
-  #btnLeft      { left: 8px;   bottom: 70px; }
-  #btnRight     { left: 132px; bottom: 70px; }
-  #btnJump      { left: 70px;  bottom: 132px; }
-  #btnDown      { left: 70px;  bottom: 8px; }
-  #btnJumpLeft  { left: 8px;   bottom: 132px; }
-  #btnJumpRight { left: 132px; bottom: 132px; }
   #btnKick   { right: 16px;  bottom: 16px; width: 70px; height: 70px; font-size: 18px; }
   #btnOver   { right: 96px; bottom: 16px; width: 70px; height: 70px; font-size: 13px; }
+  /* バーチャルジョイスティック */
+  #joyZone { position: fixed; left: 0; bottom: 0; width: 45%; height: 55%; touch-action: none; z-index: 5; }
+  #joyBase {
+    position: fixed; width: 130px; height: 130px; margin: -65px 0 0 -65px;
+    border-radius: 50%; background: rgba(255,255,255,0.10);
+    border: 2px solid rgba(255,255,255,0.30); display: none;
+    pointer-events: none; touch-action: none; z-index: 6;
+  }
+  #joyKnob {
+    position: fixed; width: 60px; height: 60px; margin: -30px 0 0 -30px;
+    border-radius: 50%; background: rgba(255,255,255,0.30);
+    border: 2px solid rgba(255,255,255,0.50); display: none;
+    pointer-events: none; touch-action: none; z-index: 7;
+  }
 
   @media (pointer: coarse) {
     #ui { display: none; }
@@ -312,12 +319,9 @@
 </div>
 
 <div id="touchControls">
-  <div class="touch-btn" id="btnLeft">◀</div>
-  <div class="touch-btn" id="btnRight">▶</div>
-  <div class="touch-btn" id="btnDown">▼</div>
-  <div class="touch-btn" id="btnJump">▲</div>
-  <div class="touch-btn" id="btnJumpLeft">↖</div>
-  <div class="touch-btn" id="btnJumpRight">↗</div>
+  <div id="joyZone"></div>
+  <div id="joyBase"></div>
+  <div id="joyKnob"></div>
   <div class="touch-btn" id="btnKick">Z<br>キック</div>
   <div class="touch-btn" id="btnOver">X<br>アタック</div>
 </div>
@@ -655,14 +659,71 @@ function bindTouchButton(id, ...codes) {
   el.addEventListener('mouseup', release);
   el.addEventListener('mouseleave', release);
 }
-bindTouchButton('btnLeft', 'ArrowLeft');
-bindTouchButton('btnRight', 'ArrowRight');
-bindTouchButton('btnDown', 'ArrowDown');
-bindTouchButton('btnJump', 'Space');
-bindTouchButton('btnJumpLeft', 'ArrowLeft', 'Space');
-bindTouchButton('btnJumpRight', 'ArrowRight', 'Space');
 bindTouchButton('btnKick', 'KeyZ');
 bindTouchButton('btnOver', 'KeyX');
+
+// ── バーチャルジョイスティック ──
+(function () {
+  const zone = document.getElementById('joyZone');
+  const base = document.getElementById('joyBase');
+  const knob = document.getElementById('joyKnob');
+  const RADIUS = 55;   // ノブの可動半径
+  const DEAD = 16;     // デッドゾーン
+  let joyId = null;    // 追跡中のタッチ識別子
+  let ox = 0, oy = 0;  // スティック中心
+
+  function clearKeys() {
+    keys['ArrowLeft'] = false; keys['ArrowRight'] = false;
+    keys['ArrowDown'] = false; keys['Space'] = false;
+  }
+  function setKnob(x, y) { knob.style.left = x + 'px'; knob.style.top = y + 'px'; }
+
+  function update(tx, ty) {
+    let dx = tx - ox, dy = ty - oy;
+    const dist = Math.hypot(dx, dy);
+    if (dist > RADIUS) { dx = dx / dist * RADIUS; dy = dy / dist * RADIUS; }
+    setKnob(ox + dx, oy + dy);
+    clearKeys();
+    if (dx < -DEAD) keys['ArrowLeft'] = true;
+    else if (dx > DEAD) keys['ArrowRight'] = true;
+    if (dy < -DEAD) keys['Space'] = true;       // 上＝ジャンプ
+    else if (dy > DEAD) keys['ArrowDown'] = true; // 下
+  }
+
+  function start(e) {
+    if (joyId !== null) return;
+    const t = e.changedTouches[0];
+    joyId = t.identifier;
+    ox = t.clientX; oy = t.clientY;
+    base.style.left = ox + 'px'; base.style.top = oy + 'px';
+    base.style.display = 'block'; knob.style.display = 'block';
+    setKnob(ox, oy);
+    e.preventDefault();
+  }
+  function findTouch(e) {
+    for (const t of e.changedTouches) if (t.identifier === joyId) return t;
+    return null;
+  }
+  function move(e) {
+    if (joyId === null) return;
+    const t = findTouch(e);
+    if (!t) return;
+    update(t.clientX, t.clientY);
+    e.preventDefault();
+  }
+  function end(e) {
+    if (joyId === null) return;
+    if (!findTouch(e)) return;
+    joyId = null;
+    base.style.display = 'none'; knob.style.display = 'none';
+    clearKeys();
+    e.preventDefault();
+  }
+  zone.addEventListener('touchstart', start, { passive: false });
+  zone.addEventListener('touchmove', move, { passive: false });
+  zone.addEventListener('touchend', end, { passive: false });
+  zone.addEventListener('touchcancel', end, { passive: false });
+})();
 
 // ── CPU AI ────────────────────────────────────────
 function cpuAI() {
