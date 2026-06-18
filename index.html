@@ -1461,9 +1461,13 @@ function drawPlayer(ent) {
     // 走りの強さ（速度依存）：止まれば小さく、速いほど大きく振る
     const run = Math.min(1, Math.abs(ent.vx) / 12);
     const s   = Math.sin(ent.limbAnim);
-    const legAmp = onG ? (12 + 30 * run) : 8;   // 股関節の前後スイング
-    const kneeAmp= onG ? (10 + 38 * run) : 10;  // 後ろに引いた脚を深く曲げる
     const armAmp = onG ? (18 + 60 * run) : 10;  // 腕の振り（左右が入れ替わるほど大きく）
+    // 脚の前後度（前方に来た側=fFwd/bFwd）
+    const fFwd = Math.max(0, -s), fBack = Math.max(0, s);
+    const bFwd = Math.max(0,  s), bBack = Math.max(0, -s);
+    // 走り時：前に出した脚は股関節を持ち上げ＋膝90度で足が浮く、後脚は伸ばして蹴り出し
+    const liftHip = (onG ? 80 : 30) * run, pushHip = (onG ? 38 : 16) * run;
+    const foldKnee = (onG ? 90 : 40) * run, straightKnee = 12 * run;
     // 通常キック：kickEffect を easeInOut で補間（線形→滑らかに）
     let kp = ent.kickEffect > 0 ? Math.min(1, ent.kickEffect / 10) : 0;
     kp = kp > 0 ? easeInOut(kp) : 0;
@@ -1473,11 +1477,11 @@ function drawPlayer(ent) {
       backArm = -30 * kp; backArmKnee = 30;
       frontArm = 40 * kp; frontArmKnee = -30;
     } else {
-      // 脚：前後スイング＋後方に引いた側の膝を深く曲げて蹴り上げる
-      backHip   = -s * legAmp;
-      frontHip  =  s * legAmp;
-      backKnee  = 6 + kneeAmp * Math.max(0,  s);
-      frontKnee = 6 + kneeAmp * Math.max(0, -s);
+      // 脚：前方の脚は膝を上げて足を浮かせ、後方の脚は伸ばして地面を蹴る
+      frontHip  = -liftHip * fFwd + pushHip * fBack;
+      backHip   = -liftHip * bFwd + pushHip * bBack;
+      frontKnee =  foldKnee * fFwd + straightKnee * fBack;
+      backKnee  =  foldKnee * bFwd + straightKnee * bBack;
       // 腕：脚と逆位相で大きく振り、前に振った側は肘を約120度曲げ手が上、
       //     後ろに引いた側は肘を伸ばし手が下に落ちる
       backArm   =  s * armAmp;  backArmKnee  =  40 + 80 * Math.max(0,  s);
