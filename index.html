@@ -1419,6 +1419,9 @@ function drawPlayer(ent) {
   ctx.ellipse(0, 0, 20 * (1 + 0.3 * sq), 5, 0, 0, Math.PI * 2);
   ctx.fill();
 
+  // オーバーヘッドのフォームは蹴る向きを反転（facingと逆＝相手コート方向へ蹴る）
+  if (ohActive) ctx.scale(-1, 1);
+
   // ── 腰ボーン ──
   ctx.save();
   ctx.translate(0, hipY);
