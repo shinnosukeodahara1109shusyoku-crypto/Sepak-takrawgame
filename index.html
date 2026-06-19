@@ -26,6 +26,9 @@
   .touch-btn.active { background: rgba(255,255,255,0.35); }
   #btnKick   { right: 16px;  bottom: 16px; width: 70px; height: 70px; font-size: 18px; }
   #btnOver   { right: 96px; bottom: 16px; width: 70px; height: 70px; font-size: 13px; }
+  #btnSpecial { right: 16px; bottom: 96px; width: 70px; height: 70px; font-size: 13px; background: rgba(255,120,0,0.4); border-color: rgba(255,180,0,0.7); }
+  #btnSpecial.ready { display: flex !important; animation: specialPulse 0.8s infinite alternate; }
+  @keyframes specialPulse { from { box-shadow: 0 0 10px #ff8a00; } to { box-shadow: 0 0 30px #ffcc00, 0 0 60px #ff5500; } }
   /* バーチャルジョイスティック */
   #joyZone { position: fixed; left: 0; bottom: 0; width: 45%; height: 55%; touch-action: none; z-index: 5; }
   #joyBase {
@@ -324,12 +327,15 @@
   <div id="joyKnob"></div>
   <div class="touch-btn" id="btnKick">Z<br>キック</div>
   <div class="touch-btn" id="btnOver">X<br>アタック</div>
+  <div class="touch-btn" id="btnSpecial" style="display:none;">C<br>必殺技</div>
 </div>
 
 <script>
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const W = canvas.width, H = canvas.height;
+const specialCutInImg = new Image();
+specialCutInImg.src = 'special_cutin.png';
 
 // ── サウンド ──────────────────────────────────────
 let audioCtx = null;
@@ -456,6 +462,9 @@ let keys = {};
 let score = { p: 0, cpu: 0 };
 let effects = [];
 let gameState = 'start'; // start / play / point / gameover
+let specialCutInActive = false;
+let specialCutInTimer = 0;
+let fireballActive = false;
 let pointMsg = '';
 let pointTimer = 0;
 let stars = [];
@@ -607,6 +616,7 @@ function makePlayer(x, isPlayer) {
     limbAnim: 0,
     jumpCount: 0,
     prevJump: false,
+    specialGauge: 0,
   };
 }
 
@@ -641,6 +651,7 @@ function localInput() {
     down: !!keys['ArrowDown'],
     kick: !!keys['KeyZ'],
     overhead: !!keys['KeyX'],
+    special: !!keys['KeyC'],
   };
 }
 
@@ -662,6 +673,7 @@ function bindTouchButton(id, ...codes) {
 }
 bindTouchButton('btnKick', 'KeyZ');
 bindTouchButton('btnOver', 'KeyX');
+bindTouchButton('btnSpecial', 'KeyC');
 
 // ── バーチャルジョイスティック ──
 (function () {
@@ -772,7 +784,9 @@ function doKick(ent) {
   if (ent.kickCooldown > 0) return;
   const dx = ball.x - ent.x;
   const dy = ball.y - ent.y;
-  if (Math.abs(dx) < 60 && Math.abs(dy) < 80) {
+  const hitW = fireballActive ? 15 : 60;
+  const hitH = fireballActive ? 20 : 80;
+  if (Math.abs(dx) < hitW && Math.abs(dy) < hitH) {
     const spd = (ent.isPlayer ? 13 : 11) * 1.3;
     const dir = Math.abs(dx) < 5 ? ent.facing : (dx > 0 ? 1 : -1);
     ball.vx = dir * spd * 0.7 + (ent.isPlayer ? 0.5 : -0.5);
@@ -789,17 +803,42 @@ function doOverhead(ent) {
   if (ent.kickCooldown > 0) return;
   const dx = ball.x - ent.x;
   const dy = ball.y - ent.y;
-  if (Math.abs(dx) < 70 && Math.abs(dy) < 80) {
+  const hitW = fireballActive ? 25 : 70;
+  const hitH = fireballActive ? 30 : 80;
+  if (Math.abs(dx) < hitW && Math.abs(dy) < hitH) {
     ball.vx = (ent.isPlayer ? 1 : -1) * 14 * 1.3;
-    ball.vy = 6 * 1.3;  // 相手コートに飛ぶ角度
+    ball.vy = 6 * 1.3;
     ball.spin = ent.isPlayer ? -8 : 8;
     ent.kickCooldown = 25;
     ent.overheadState = 2;
-    ent.overheadTimer = 24 + KICK_HOLD_FRAMES; // 体勢を保持する時間を延長
+    ent.overheadTimer = 24 + KICK_HOLD_FRAMES;
     ent.kickEffect = 14 + KICK_HOLD_FRAMES;
     addEffect(ball.x, ball.y, '#f0f', 'overhead');
     playAttackSound();
+    ent.specialGauge = Math.min(15, ent.specialGauge + 1);
   }
+}
+
+function doSpecial(ent) {
+  if (ent.specialGauge < 15) return;
+  if (specialCutInActive) return;
+  ent.specialGauge = 0;
+  document.getElementById('btnSpecial').classList.remove('ready');
+  specialCutInActive = true;
+  specialCutInTimer = 90;
+}
+
+function executeSpecialAttack(ent) {
+  const dir = ent.isPlayer ? 1 : -1;
+  ball.vx = dir * 28 * 1.3;
+  ball.vy = 3 * 1.3;
+  ball.spin = dir * -15;
+  fireballActive = true;
+  ent.overheadState = 2;
+  ent.overheadTimer = 30;
+  ent.kickEffect = 20;
+  ent.kickCooldown = 40;
+  addEffect(ball.x, ball.y, '#ff4400', 'overhead');
 }
 
 // ── エフェクト ────────────────────────────────────
@@ -853,6 +892,7 @@ function updateBall(authoritative) {
 
   // 得点判定（ホスト/シングルプレイのみ判定する）
   if (authoritative && ball.y + BALL_R >= GROUND && gameState === 'play') {
+    fireballActive = false;
     if (ball.x < NET_X) {
       score.cpu++;
       showPoint('CPUの得点！', score.cpu >= WIN_SCORE ? 'gameover' : 'point');
@@ -895,6 +935,7 @@ function updatePlayer(ent, input) {
     }
     if (input.kick && ent.kickCooldown <= 0) doKick(ent);
     if (input.overhead && ent.kickCooldown <= 0) doOverhead(ent);
+    if (input.special && ent.specialGauge >= 15 && !specialCutInActive) doSpecial(ent);
   } else {
     cpuAI();
   }
@@ -918,6 +959,9 @@ function updatePlayer(ent, input) {
   if (ent.kickEffect > 0) ent.kickEffect--;
   if (ent.overheadTimer > 0) { ent.overheadTimer--; if (ent.overheadTimer === 0) ent.overheadState = 0; }
   ent.limbAnim += (ent.onGround ? Math.abs(ent.vx) * 0.15 : 0.08) * SPEED_SCALE;
+  if (ent.isPlayer && ent.specialGauge >= 15) {
+    document.getElementById('btnSpecial').classList.add('ready');
+  }
 }
 
 // ── 得点イベント ───────────────────────────────────
@@ -951,6 +995,7 @@ function resetAfterPoint() {
   ball.x = serveSide === 1 ? W / 4 : W * 3 / 4; ball.y = GROUND - 240;
   ball.vx = 2 * serveSide; ball.vy = -4; ball.spin = 0; ball.trail = [];
   effects = [];
+  fireballActive = false;
   gameState = 'play';
 }
 
@@ -1555,6 +1600,21 @@ function drawPlayer(ent) {
 
 // ── 描画：ボール ──────────────────────────────────
 function drawBall() {
+  if (fireballActive) {
+    for (let i = 0; i < ball.trail.length; i++) {
+      const t = ball.trail[i];
+      const p = i / ball.trail.length;
+      const r = BALL_R * (1.5 + p * 1.5);
+      ctx.fillStyle = `rgba(255,${Math.floor(100 + p * 100)},0,${0.6 - p * 0.5})`;
+      ctx.beginPath(); ctx.arc(t.x, t.y, r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.save();
+    ctx.shadowColor = '#ff4400';
+    ctx.shadowBlur = 30;
+    ctx.fillStyle = 'rgba(255,120,0,0.4)';
+    ctx.beginPath(); ctx.arc(ball.x, ball.y, BALL_R * 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
   // トレイル
   ball.trail.forEach((t, i) => {
     const alpha = (i / ball.trail.length) * 0.4;
@@ -1631,6 +1691,59 @@ function drawScore() {
   ctx.restore();
 }
 
+function drawSpecialGauge() {
+  const g = player.specialGauge;
+  const x = 16, y = H - 36, w = 140, h = 14;
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.beginPath(); ctx.roundRect(x - 2, y - 2, w + 4, h + 4, 5); ctx.fill();
+  ctx.fillStyle = '#222';
+  ctx.beginPath(); ctx.roundRect(x, y, w, h, 3); ctx.fill();
+  const ratio = g / 15;
+  if (g >= 15) {
+    const grad = ctx.createLinearGradient(x, 0, x + w, 0);
+    grad.addColorStop(0, '#ffdd33'); grad.addColorStop(0.5, '#ff8800'); grad.addColorStop(1, '#ffdd33');
+    ctx.fillStyle = grad;
+  } else {
+    const grad = ctx.createLinearGradient(x, 0, x + w, 0);
+    grad.addColorStop(0, '#ff8a00'); grad.addColorStop(1, '#ff2a00');
+    ctx.fillStyle = grad;
+  }
+  ctx.beginPath(); ctx.roundRect(x, y, w * ratio, h, 3); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'left';
+  ctx.fillText('SPECIAL ' + g + '/15', x + 4, y + h + 14);
+  if (g >= 15) {
+    ctx.fillStyle = '#ffcc00'; ctx.font = 'bold 13px Arial';
+    ctx.fillText('★ READY!', x + w + 8, y + 11);
+  }
+}
+
+function drawSpecialCutIn() {
+  if (!specialCutInActive) return;
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.85)';
+  ctx.fillRect(0, 0, W, H);
+  const rg = ctx.createRadialGradient(W/2, H/2, 20, W/2, H/2, W*0.7);
+  rg.addColorStop(0, 'rgba(180,0,0,0.6)'); rg.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = 'rgba(255,100,0,0.35)'; ctx.lineWidth = 2;
+  for (let i = 0; i < 32; i++) {
+    const a = (i / 32) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(W/2 + Math.cos(a) * 80, H/2 + Math.sin(a) * 60);
+    ctx.lineTo(W/2 + Math.cos(a) * W, H/2 + Math.sin(a) * W);
+    ctx.stroke();
+  }
+  if (specialCutInImg && specialCutInImg.complete) {
+    ctx.drawImage(specialCutInImg, 0, 0, W, H);
+  } else {
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = '#ff3000'; ctx.lineWidth = 4;
+    ctx.font = 'bold 42px Arial'; ctx.textAlign = 'center';
+    ctx.strokeText('俺が決めてやる！！', W/2, H/2);
+    ctx.fillText('俺が決めてやる！！', W/2, H/2);
+  }
+  ctx.restore();
+}
+
 // ── 描画：オーバーレイ ────────────────────────────
 function drawOverlay() {
   if (gameState === 'point' || gameState === 'gameover') {
@@ -1680,10 +1793,18 @@ function gameLoop(ts) {
 
   if (mode === 'cpu') {
     if (gameState === 'play') {
-      updatePlayer(player, localInput());
-      updatePlayer(cpu, null);
-      updateBallSubsteps(true);
-      updateEffects();
+      if (specialCutInActive) {
+        specialCutInTimer--;
+        if (specialCutInTimer <= 0) {
+          specialCutInActive = false;
+          executeSpecialAttack(player);
+        }
+      } else {
+        updatePlayer(player, localInput());
+        updatePlayer(cpu, null);
+        updateBallSubsteps(true);
+        updateEffects();
+      }
     } else if (gameState === 'point') {
       pointTimer--;
       if (pointTimer <= 0) resetAfterPoint();
@@ -1697,6 +1818,7 @@ function gameLoop(ts) {
         } else if (keys['Space']) {
           score = { p: 0, cpu: 0 };
           resetEntities();
+          player.specialGauge = 0; fireballActive = false;
           gameState = 'play';
         }
       }
@@ -1715,6 +1837,7 @@ function gameLoop(ts) {
       if (localInput().jump && pointTimer <= 0) {
         score = { p: 0, cpu: 0 };
         resetEntities();
+        player.specialGauge = 0; fireballActive = false;
         gameState = 'play';
       }
       pointTimer = Math.max(0, pointTimer - 1);
@@ -1779,7 +1902,9 @@ function gameLoop(ts) {
   drawPlayer(player);
   drawPlayer(cpu);
   drawScore();
+  drawSpecialGauge();
   drawOverlay();
+  drawSpecialCutIn();
 }
 
 // ── スタート（CPU対戦：難易度選択） ───────────────
@@ -1867,6 +1992,7 @@ function confirmCharacterAndStart(charId) {
   score = { p: 0, cpu: 0 };
   gachaShown = false;
   resetEntities();
+  player.specialGauge = 0; fireballActive = false;
   gameState = 'play';
   setTouchControlsVisible(true);
   currentGameStartTime = Date.now();
@@ -2062,6 +2188,7 @@ document.getElementById('gachaCloseBtn').addEventListener('click', () => {
   document.getElementById('gachaScreen').style.display = 'none';
   gachaShown = false;
   score = { p: 0, cpu: 0 };
+  player.specialGauge = 0; fireballActive = false;
   gameState = 'start';
   document.getElementById('startScreen').style.display = 'flex';
 });
