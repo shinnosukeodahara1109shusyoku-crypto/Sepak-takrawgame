@@ -464,7 +464,9 @@ let effects = [];
 let gameState = 'start'; // start / play / point / gameover
 let specialCutInActive = false;
 let specialCutInTimer = 0;
+let specialCutInEntity = null; // who triggered the special
 let fireballActive = false;
+let cpuSpecialCost = DIFFICULTY_SPECIAL_COST.legend;
 let pointMsg = '';
 let pointTimer = 0;
 let stars = [];
@@ -585,6 +587,8 @@ const DIFFICULTY_ATTACK_CHANCE = { amateur: 0.1, professional: 0.5, legend: 1.0 
 const DIFFICULTY_FAR_ATTACK_CHANCE = { amateur: 0.2, professional: 0, legend: 0 };
 // CPUの追従速度（アマチュアは反応が遅い）
 const DIFFICULTY_MOVE_SPEED = { amateur: 8.5, professional: 10.8, legend: 10.8 };
+// CPU必殺技：必要アタック数（amateurは使わない=Infinity）
+const DIFFICULTY_SPECIAL_COST = { amateur: Infinity, professional: 15, legend: 10 };
 let cpuAttackChance = DIFFICULTY_ATTACK_CHANCE.legend;
 let cpuFarAttackChance = DIFFICULTY_FAR_ATTACK_CHANCE.legend;
 let cpuMoveSpeed = DIFFICULTY_MOVE_SPEED.legend;
@@ -764,6 +768,12 @@ function cpuAI() {
     }
   }
 
+  // 必殺技判断（ゲージMAXでボールが自陣にある時に発動）
+  if (cpu.specialGauge >= cpuSpecialCost && !specialCutInActive && ball.x > NET_X) {
+    doSpecial(cpu);
+    return;
+  }
+
   // キック判断（範囲を広めに）
   if (cpu.kickCooldown <= 0) {
     const dx = Math.abs(cpu.x - ball.x);
@@ -820,12 +830,14 @@ function doOverhead(ent) {
 }
 
 function doSpecial(ent) {
-  if (ent.specialGauge < 15) return;
+  const cost = ent.isPlayer ? 15 : cpuSpecialCost;
+  if (ent.specialGauge < cost) return;
   if (specialCutInActive) return;
   ent.specialGauge = 0;
-  document.getElementById('btnSpecial').classList.remove('ready');
+  if (ent.isPlayer) document.getElementById('btnSpecial').classList.remove('ready');
   specialCutInActive = true;
   specialCutInTimer = 90;
+  specialCutInEntity = ent;
 }
 
 function executeSpecialAttack(ent) {
@@ -1691,15 +1703,13 @@ function drawScore() {
   ctx.restore();
 }
 
-function drawSpecialGauge() {
-  const g = player.specialGauge;
-  const x = 16, y = H - 36, w = 140, h = 14;
+function drawOneGauge(g, max, x, y, w, h, label) {
   ctx.fillStyle = 'rgba(0,0,0,0.5)';
   ctx.beginPath(); ctx.roundRect(x - 2, y - 2, w + 4, h + 4, 5); ctx.fill();
   ctx.fillStyle = '#222';
   ctx.beginPath(); ctx.roundRect(x, y, w, h, 3); ctx.fill();
-  const ratio = g / 15;
-  if (g >= 15) {
+  const ratio = Math.min(1, g / max);
+  if (g >= max) {
     const grad = ctx.createLinearGradient(x, 0, x + w, 0);
     grad.addColorStop(0, '#ffdd33'); grad.addColorStop(0.5, '#ff8800'); grad.addColorStop(1, '#ffdd33');
     ctx.fillStyle = grad;
@@ -1709,11 +1719,21 @@ function drawSpecialGauge() {
     ctx.fillStyle = grad;
   }
   ctx.beginPath(); ctx.roundRect(x, y, w * ratio, h, 3); ctx.fill();
-  ctx.fillStyle = '#fff'; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'left';
-  ctx.fillText('SPECIAL ' + g + '/15', x + 4, y + h + 14);
-  if (g >= 15) {
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 11px Arial';
+  ctx.fillText(label + ' ' + Math.min(g, max) + '/' + max, x + 4, y + h + 14);
+  if (g >= max) {
     ctx.fillStyle = '#ffcc00'; ctx.font = 'bold 13px Arial';
     ctx.fillText('★ READY!', x + w + 8, y + 11);
+  }
+}
+function drawSpecialGauge() {
+  ctx.save(); ctx.textAlign = 'left';
+  drawOneGauge(player.specialGauge, 15, 16, H - 36, 140, 14, 'SPECIAL');
+  ctx.restore();
+  if (cpuSpecialCost < Infinity) {
+    ctx.save(); ctx.textAlign = 'left';
+    drawOneGauge(cpu.specialGauge, cpuSpecialCost, W - 156, H - 36, 140, 14, 'CPU SP');
+    ctx.restore();
   }
 }
 
@@ -1797,7 +1817,8 @@ function gameLoop(ts) {
         specialCutInTimer--;
         if (specialCutInTimer <= 0) {
           specialCutInActive = false;
-          executeSpecialAttack(player);
+          executeSpecialAttack(specialCutInEntity || player);
+          specialCutInEntity = null;
         }
       } else {
         updatePlayer(player, localInput());
@@ -1818,7 +1839,7 @@ function gameLoop(ts) {
         } else if (keys['Space']) {
           score = { p: 0, cpu: 0 };
           resetEntities();
-          player.specialGauge = 0; fireballActive = false;
+          player.specialGauge = 0; cpu.specialGauge = 0; fireballActive = false;
           gameState = 'play';
         }
       }
@@ -1837,7 +1858,7 @@ function gameLoop(ts) {
       if (localInput().jump && pointTimer <= 0) {
         score = { p: 0, cpu: 0 };
         resetEntities();
-        player.specialGauge = 0; fireballActive = false;
+        player.specialGauge = 0; cpu.specialGauge = 0; fireballActive = false;
         gameState = 'play';
       }
       pointTimer = Math.max(0, pointTimer - 1);
@@ -1985,14 +2006,14 @@ function confirmCharacterAndStart(charId) {
   cpuAttackChance = attackChance;
   cpuFarAttackChance = farAttackChance;
   cpuMoveSpeed = moveSpeed;
-  if (attackChance === DIFFICULTY_ATTACK_CHANCE.amateur) currentGameDifficulty = 'amateur';
-  else if (attackChance === DIFFICULTY_ATTACK_CHANCE.legend) currentGameDifficulty = 'legend';
-  else currentGameDifficulty = 'professional';
+  if (attackChance === DIFFICULTY_ATTACK_CHANCE.amateur) { currentGameDifficulty = 'amateur'; cpuSpecialCost = DIFFICULTY_SPECIAL_COST.amateur; }
+  else if (attackChance === DIFFICULTY_ATTACK_CHANCE.legend) { currentGameDifficulty = 'legend'; cpuSpecialCost = DIFFICULTY_SPECIAL_COST.legend; }
+  else { currentGameDifficulty = 'professional'; cpuSpecialCost = DIFFICULTY_SPECIAL_COST.professional; }
   mode = 'cpu';
   score = { p: 0, cpu: 0 };
   gachaShown = false;
   resetEntities();
-  player.specialGauge = 0; fireballActive = false;
+  player.specialGauge = 0; cpu.specialGauge = 0; fireballActive = false;
   gameState = 'play';
   setTouchControlsVisible(true);
   currentGameStartTime = Date.now();
@@ -2188,7 +2209,7 @@ document.getElementById('gachaCloseBtn').addEventListener('click', () => {
   document.getElementById('gachaScreen').style.display = 'none';
   gachaShown = false;
   score = { p: 0, cpu: 0 };
-  player.specialGauge = 0; fireballActive = false;
+  player.specialGauge = 0; cpu.specialGauge = 0; fireballActive = false;
   gameState = 'start';
   document.getElementById('startScreen').style.display = 'flex';
 });
