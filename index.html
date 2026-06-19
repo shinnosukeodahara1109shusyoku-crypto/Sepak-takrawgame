@@ -54,6 +54,7 @@
     background: url('assets/title_bg.png') center center / cover no-repeat;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center; color: #fff;
+    z-index: 10; touch-action: auto;
   }
   #startScreen::before {
     content: ''; position: absolute; inset: 0;
@@ -71,7 +72,7 @@
   #startBtn:hover { transform: scale(1.05); }
 
   #modeSelect, #onlineMenu { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 16px; }
-  .mode-btn { padding: 12px 40px; font-size: 18px; background: #46c; color: #fff; border: none; border-radius: 8px; cursor: pointer; transition: transform 0.1s; }
+  .mode-btn { padding: 12px 40px; font-size: 18px; background: #46c; color: #fff; border: none; border-radius: 8px; cursor: pointer; transition: transform 0.1s; touch-action: auto; }
   .mode-btn:hover { transform: scale(1.05); }
   #onlineMenu { background: rgba(255,255,255,0.05); padding: 16px 24px; border-radius: 10px; min-width: 260px; }
   #onlineMenu input { font-size: 20px; text-align: center; letter-spacing: 4px; width: 110px; padding: 6px; border-radius: 6px; border: none; }
@@ -86,7 +87,7 @@
     background: rgba(0,0,5,0.9);
     display: none; flex-direction: column; align-items: center; justify-content: center;
     color: #fff; gap: 18px; padding: 16px; text-align: center;
-    overflow-y: auto;
+    overflow-y: auto; touch-action: auto;
   }
   .gacha-title { font-size: 28px; color: #ff0; text-shadow: 0 0 12px #f80, 0 0 24px #f60; }
 
@@ -2212,6 +2213,7 @@ document.getElementById('gachaCloseBtn').addEventListener('click', () => {
   player.specialGauge = 0; cpu.specialGauge = 0; fireballActive = false;
   gameState = 'start';
   document.getElementById('startScreen').style.display = 'flex';
+  setTouchControlsVisible(false);
 });
 
 // ── コレクション画面 ──────────────────────────────
