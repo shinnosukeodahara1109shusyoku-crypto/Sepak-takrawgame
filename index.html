@@ -336,6 +336,10 @@ const ctx = canvas.getContext('2d');
 const W = canvas.width, H = canvas.height;
 const specialCutInImg = new Image();
 specialCutInImg.src = 'assets/a9585e7b-d350-4aac-8376-a84e300da2ff.png';
+const playerSpecialImg = new Image();
+playerSpecialImg.src = 'assets/cdb56d1d-62ff-4854-8267-4b1d7c035c6a.png';
+const cpuSpecialImg = new Image();
+cpuSpecialImg.src = 'assets/d3d1081b-19d0-4dc1-b932-4ced9702dd71.png';
 
 // ── サウンド ──────────────────────────────────────
 let audioCtx = null;
@@ -1402,6 +1406,19 @@ const OH_KF = {
 function drawPlayer(ent) {
   ctx.save();
   ctx.translate(ent.x, ent.y);
+
+  // 必殺技アタック中はシルエット画像を表示
+  if (fireballActive && ent.overheadState === 2 && ent.kickEffect > 0) {
+    const silImg = ent.isPlayer ? playerSpecialImg : cpuSpecialImg;
+    if (silImg && silImg.complete && silImg.naturalWidth > 0) {
+      const sh = 120;
+      const sw = sh * (silImg.naturalWidth / silImg.naturalHeight);
+      ctx.scale(ent.facing, 1);
+      ctx.drawImage(silImg, -sw / 2, -sh + 10, sw, sh);
+      ctx.restore();
+      return;
+    }
+  }
 
   const isOverhead = ent.overheadState === 2;
   const scale = ent.facing;
