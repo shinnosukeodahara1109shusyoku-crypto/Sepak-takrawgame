@@ -584,6 +584,7 @@ const DIFFICULTY_ATTACK_CHANCE = { amateur: 0.1, professional: 0.5, legend: 1.0 
 const DIFFICULTY_FAR_ATTACK_CHANCE = { amateur: 0.2, professional: 0, legend: 0 };
 // CPUの追従速度（アマチュアは反応が遅い）
 const DIFFICULTY_MOVE_SPEED = { amateur: 8.5, professional: 10.8, legend: 10.8 };
+const PLAYER_SPECIAL_COST = 3;
 const DIFFICULTY_SPECIAL_COST = { amateur: Infinity, professional: 15, legend: 10 };
 let cpuAttackChance = DIFFICULTY_ATTACK_CHANCE.legend;
 let cpuFarAttackChance = DIFFICULTY_FAR_ATTACK_CHANCE.legend;
@@ -819,8 +820,9 @@ function doOverhead(ent) {
     ent.overheadState = 2;
     ent.overheadTimer = 24 + KICK_HOLD_FRAMES;
     ent.kickEffect = 14 + KICK_HOLD_FRAMES;
-    ent.specialGauge = Math.min(15, ent.specialGauge + 1);
-    if (ent.isPlayer && ent.specialGauge >= 15) {
+    const maxGauge = ent.isPlayer ? PLAYER_SPECIAL_COST : cpuSpecialCost;
+    ent.specialGauge = Math.min(maxGauge, ent.specialGauge + 1);
+    if (ent.isPlayer && ent.specialGauge >= PLAYER_SPECIAL_COST) {
       document.getElementById('btnSpecial').classList.add('ready');
     }
     fireballActive = false;
@@ -830,7 +832,7 @@ function doOverhead(ent) {
 }
 
 function doSpecial(ent) {
-  const cost = ent.isPlayer ? 15 : cpuSpecialCost;
+  const cost = ent.isPlayer ? PLAYER_SPECIAL_COST : cpuSpecialCost;
   if (ent.specialGauge < cost) return;
   if (specialCutInActive) return;
   ent.specialGauge = 0;
@@ -1711,8 +1713,8 @@ function drawSpecialGauge() {
   ctx.beginPath(); ctx.roundRect(x - 2, y - 2, w + 4, h + 4, 4); ctx.fill();
   ctx.fillStyle = '#222';
   ctx.beginPath(); ctx.roundRect(x, y, w, h, 3); ctx.fill();
-  const ratio = cnt / 15;
-  if (cnt >= 15) {
+  const ratio = cnt / PLAYER_SPECIAL_COST;
+  if (cnt >= PLAYER_SPECIAL_COST) {
     ctx.fillStyle = '#ffdd33';
   } else {
     const gg = ctx.createLinearGradient(x, 0, x + w, 0);
@@ -1721,7 +1723,7 @@ function drawSpecialGauge() {
   }
   ctx.beginPath(); ctx.roundRect(x, y, w * ratio, h, 3); ctx.fill();
   ctx.fillStyle = '#fff'; ctx.font = '10px Arial'; ctx.textAlign = 'center';
-  ctx.fillText('SPECIAL ' + cnt + '/15', W / 2, y - 4);
+  ctx.fillText('SPECIAL ' + cnt + '/' + PLAYER_SPECIAL_COST, W / 2, y - 4);
 }
 
 // ── 描画：カットイン ────────────────────────────
