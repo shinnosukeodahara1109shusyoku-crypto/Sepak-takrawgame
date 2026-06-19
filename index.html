@@ -855,9 +855,9 @@ function executeSpecialAttack(ent) {
   ball.spin = dir * -15;
   fireballActive = true;
   ent.overheadState = 2;
-  ent.overheadTimer = 30;
-  ent.kickEffect = 20;
-  ent.kickCooldown = 40;
+  ent.overheadTimer = 60;
+  ent.kickEffect = 40;
+  ent.kickCooldown = 70;
   addEffect(ball.x, ball.y, '#ff4400', 'overhead');
 }
 
@@ -1411,7 +1411,7 @@ function drawPlayer(ent) {
   if (fireballActive && ent.overheadState === 2 && ent.kickEffect > 0) {
     const silImg = ent.isPlayer ? playerSpecialImg : cpuSpecialImg;
     if (silImg && silImg.complete && silImg.naturalWidth > 0) {
-      const sh = 120;
+      const sh = 204;
       const sw = sh * (silImg.naturalWidth / silImg.naturalHeight);
       ctx.scale(ent.facing, 1);
       ctx.drawImage(silImg, -sw / 2, -sh + 10, sw, sh);
