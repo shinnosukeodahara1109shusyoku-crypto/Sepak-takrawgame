@@ -585,17 +585,17 @@ document.getElementById('googleLoginBtn').addEventListener('click', () => {
 
 // ── 通信対戦 ──────────────────────────────────────
 let mode = 'cpu'; // 'cpu' | 'host' | 'guest'
-const DIFFICULTY_ATTACK_CHANCE = { amateur: 0.1, professional: 0.5, legend: 1.0 };
-// ネットから遠い位置でもアタックしてしまう確率（アマチュアのミスっぽい挙動）
-const DIFFICULTY_FAR_ATTACK_CHANCE = { amateur: 0.2, professional: 0, legend: 0 };
-// CPUの追従速度（アマチュアは反応が遅い）
-const DIFFICULTY_MOVE_SPEED = { amateur: 8.5, professional: 10.8, legend: 10.8 };
+const DIFFICULTY = {
+  amateur:      { attackChance: 0.1, farAttack: 0.2, moveSpeed: 7,  jumpPower: -9,   kickMult: 0.8, specialCost: Infinity, atkRange: 100 },
+  professional: { attackChance: 0.5, farAttack: 0,   moveSpeed: 11, jumpPower: -11,  kickMult: 1.0, specialCost: 15,       atkRange: 140 },
+  legend:       { attackChance: 1.0, farAttack: 0,   moveSpeed: 14, jumpPower: -13.5, kickMult: 1.3, specialCost: 5,       atkRange: 180 },
+};
 const PLAYER_SPECIAL_COST = 3;
-const DIFFICULTY_SPECIAL_COST = { amateur: Infinity, professional: 15, legend: 10 };
-let cpuAttackChance = DIFFICULTY_ATTACK_CHANCE.legend;
-let cpuFarAttackChance = DIFFICULTY_FAR_ATTACK_CHANCE.legend;
-let cpuMoveSpeed = DIFFICULTY_MOVE_SPEED.legend;
-let cpuSpecialCost = DIFFICULTY_SPECIAL_COST.legend;
+let cpuDiff = DIFFICULTY.legend;
+let cpuAttackChance = cpuDiff.attackChance;
+let cpuFarAttackChance = cpuDiff.farAttack;
+let cpuMoveSpeed = cpuDiff.moveSpeed;
+let cpuSpecialCost = cpuDiff.specialCost;
 let serveSide = 1; // 1: 自分側からスタート, -1: 相手側からスタート（得点ごとに交互）
 let roomRef = null;
 let remoteInput = { left:false, right:false, jump:false, down:false, kick:false, overhead:false };
@@ -769,8 +769,8 @@ function cpuAI() {
   const ballHigh = ball.y < GROUND - 70;
   const canAttack = nearNet || ballHigh;
   if (ball.x > NET_X - 30 && canAttack && cpu.onGround) {
-    if (Math.abs(cpu.x - ball.x) < 140) {
-      cpu.vy = -11;
+    if (Math.abs(cpu.x - ball.x) < cpuDiff.atkRange) {
+      cpu.vy = cpuDiff.jumpPower;
       cpu.onGround = false;
       cpu.attackRoll = Math.random();
     }
@@ -799,7 +799,7 @@ function doKick(ent) {
   const hitW = fireballActive ? 15 : 60;
   const hitH = fireballActive ? 20 : 80;
   if (Math.abs(dx) < hitW && Math.abs(dy) < hitH) {
-    const spd = (ent.isPlayer ? 13 : 11) * 1.3;
+    const spd = (ent.isPlayer ? 13 : 11 * cpuDiff.kickMult) * 1.3;
     const dir = Math.abs(dx) < 5 ? ent.facing : (dx > 0 ? 1 : -1);
     ball.vx = dir * spd * 0.7 + (ent.isPlayer ? 0.5 : -0.5);
     ball.vy = -spd * 0.85;
@@ -819,7 +819,8 @@ function doOverhead(ent) {
   const hitW = fireballActive ? 25 : 70;
   const hitH = fireballActive ? 30 : 80;
   if (Math.abs(dx) < hitW && Math.abs(dy) < hitH) {
-    ball.vx = (ent.isPlayer ? 1 : -1) * 14 * 1.3;
+    const atkSpd = ent.isPlayer ? 14 : 14 * cpuDiff.kickMult;
+    ball.vx = (ent.isPlayer ? 1 : -1) * atkSpd * 1.3;
     ball.vy = 6 * 1.3;
     ball.spin = ent.isPlayer ? -8 : 8;
     ent.kickCooldown = 25;
@@ -1964,8 +1965,8 @@ CAPSULE_TYPES.forEach(t => {
   }
 });
 
-function startCpuGame(attackChance, farAttackChance, moveSpeed) {
-  pendingDifficulty = { attackChance, farAttackChance, moveSpeed };
+function startCpuGame(diffName) {
+  pendingDifficulty = diffName;
   pendingGameMode = 'cpu';
   document.getElementById('difficultyScreen').style.display = 'none';
   showCharacterSelect();
@@ -2009,13 +2010,12 @@ function confirmCharacterAndStart(charId) {
     return;
   }
 
-  const { attackChance, farAttackChance, moveSpeed } = pendingDifficulty;
-  cpuAttackChance = attackChance;
-  cpuFarAttackChance = farAttackChance;
-  cpuMoveSpeed = moveSpeed;
-  if (attackChance === DIFFICULTY_ATTACK_CHANCE.amateur) { currentGameDifficulty = 'amateur'; cpuSpecialCost = DIFFICULTY_SPECIAL_COST.amateur; }
-  else if (attackChance === DIFFICULTY_ATTACK_CHANCE.legend) { currentGameDifficulty = 'legend'; cpuSpecialCost = DIFFICULTY_SPECIAL_COST.legend; }
-  else { currentGameDifficulty = 'professional'; cpuSpecialCost = DIFFICULTY_SPECIAL_COST.professional; }
+  currentGameDifficulty = pendingDifficulty;
+  cpuDiff = DIFFICULTY[currentGameDifficulty];
+  cpuAttackChance = cpuDiff.attackChance;
+  cpuFarAttackChance = cpuDiff.farAttack;
+  cpuMoveSpeed = cpuDiff.moveSpeed;
+  cpuSpecialCost = cpuDiff.specialCost;
   mode = 'cpu';
   score = { p: 0, cpu: 0 };
   gachaShown = false;
@@ -2048,9 +2048,9 @@ document.getElementById('charSelectBackBtn').addEventListener('click', () => {
   }
 });
 
-document.getElementById('diffAmateurBtn').addEventListener('click', () => startCpuGame(DIFFICULTY_ATTACK_CHANCE.amateur, DIFFICULTY_FAR_ATTACK_CHANCE.amateur, DIFFICULTY_MOVE_SPEED.amateur));
-document.getElementById('diffProBtn').addEventListener('click', () => startCpuGame(DIFFICULTY_ATTACK_CHANCE.professional, DIFFICULTY_FAR_ATTACK_CHANCE.professional, DIFFICULTY_MOVE_SPEED.professional));
-document.getElementById('diffLegendBtn').addEventListener('click', () => startCpuGame(DIFFICULTY_ATTACK_CHANCE.legend, DIFFICULTY_FAR_ATTACK_CHANCE.legend, DIFFICULTY_MOVE_SPEED.legend));
+document.getElementById('diffAmateurBtn').addEventListener('click', () => startCpuGame('amateur'));
+document.getElementById('diffProBtn').addEventListener('click', () => startCpuGame('professional'));
+document.getElementById('diffLegendBtn').addEventListener('click', () => startCpuGame('legend'));
 
 // ── 通信対戦メニュー ──────────────────────────────
 document.getElementById('onlineModeBtn').addEventListener('click', () => {
