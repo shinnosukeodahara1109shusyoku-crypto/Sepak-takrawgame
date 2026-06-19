@@ -334,6 +334,8 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const W = canvas.width, H = canvas.height;
+const specialCutInImg = new Image();
+specialCutInImg.src = 'assets/special_cutin.png';
 
 // ── サウンド ──────────────────────────────────────
 let audioCtx = null;
@@ -1730,25 +1732,29 @@ function drawSpecialGauge() {
 function drawSpecialCutIn() {
   if (!specialCutInActive) return;
   ctx.save();
-  const g = ctx.createRadialGradient(W/2, H/2, 20, W/2, H/2, 300);
-  g.addColorStop(0, 'rgba(60,0,0,0.9)'); g.addColorStop(1, 'rgba(0,0,0,0.95)');
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  ctx.strokeStyle = 'rgba(255,120,0,0.4)'; ctx.lineWidth = 2;
-  for (let a = 0; a < 24; a++) {
-    const an = a / 24 * Math.PI * 2;
-    ctx.beginPath();
-    ctx.moveTo(W/2 + Math.cos(an) * 40, H/2 + Math.sin(an) * 40);
-    ctx.lineTo(W/2 + Math.cos(an) * 400, H/2 + Math.sin(an) * 400);
-    ctx.stroke();
+  if (specialCutInImg && specialCutInImg.complete && specialCutInImg.naturalWidth > 0) {
+    ctx.drawImage(specialCutInImg, 0, 0, W, H);
+  } else {
+    const g = ctx.createRadialGradient(W/2, H/2, 20, W/2, H/2, 300);
+    g.addColorStop(0, 'rgba(60,0,0,0.9)'); g.addColorStop(1, 'rgba(0,0,0,0.95)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = 'rgba(255,120,0,0.4)'; ctx.lineWidth = 2;
+    for (let a = 0; a < 24; a++) {
+      const an = a / 24 * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(W/2 + Math.cos(an) * 40, H/2 + Math.sin(an) * 40);
+      ctx.lineTo(W/2 + Math.cos(an) * 400, H/2 + Math.sin(an) * 400);
+      ctx.stroke();
+    }
+    const who = specialCutInEntity;
+    const name = who && who.isPlayer ? 'プレイヤー' : 'CPU';
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = '#ff3000'; ctx.lineWidth = 3;
+    ctx.font = 'bold 28px Arial'; ctx.textAlign = 'center';
+    ctx.strokeText(name + 'の必殺技！', W/2, H/2 - 10);
+    ctx.fillText(name + 'の必殺技！', W/2, H/2 - 10);
+    ctx.fillStyle = '#ffcc33'; ctx.font = '16px Arial';
+    ctx.fillText('ファイヤーアタック！！', W/2, H/2 + 24);
   }
-  const who = specialCutInEntity;
-  const name = who && who.isPlayer ? 'プレイヤー' : 'CPU';
-  ctx.fillStyle = '#fff'; ctx.strokeStyle = '#ff3000'; ctx.lineWidth = 3;
-  ctx.font = 'bold 28px Arial'; ctx.textAlign = 'center';
-  ctx.strokeText(name + 'の必殺技！', W/2, H/2 - 10);
-  ctx.fillText(name + 'の必殺技！', W/2, H/2 - 10);
-  ctx.fillStyle = '#ffcc33'; ctx.font = '16px Arial';
-  ctx.fillText('ファイヤーアタック！！', W/2, H/2 + 24);
   ctx.restore();
 }
 
