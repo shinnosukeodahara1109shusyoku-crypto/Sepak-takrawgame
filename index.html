@@ -50,11 +50,11 @@
     #gameCanvas { max-height: 68vh; }
   }
   #startScreen {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     background: url('assets/title_bg.png') center center / cover no-repeat;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center; color: #fff;
-    z-index: 10; touch-action: auto;
+    z-index: 10;
   }
   #startScreen::before {
     content: ''; position: absolute; inset: 0;
@@ -1928,11 +1928,6 @@ function gameLoop(ts) {
   drawOverlay();
   drawSpecialCutIn();
 }
-
-// スマホでボタンが押せない問題の対策：touchstartで即click発火
-document.querySelectorAll('.mode-btn, .gacha-btn, #gachaCloseBtn, #collectionCloseBtn, #diffBackBtn, #charBackBtn').forEach(btn => {
-  btn.addEventListener('touchstart', e => { e.preventDefault(); btn.click(); }, { passive: false });
-});
 
 // ── スタート（CPU対戦：難易度選択） ───────────────
 document.getElementById('cpuBtn').addEventListener('click', () => {
