@@ -794,6 +794,8 @@ function cpuAI() {
 // ── キック処理 ────────────────────────────────────
 function doKick(ent) {
   if (ent.kickCooldown > 0) return;
+  if (ent.isPlayer && ball.x > NET_X) return;
+  if (!ent.isPlayer && ball.x < NET_X) return;
   const dx = ball.x - ent.x;
   const dy = ball.y - ent.y;
   const hitW = fireballActive ? 15 : 60;
@@ -814,6 +816,8 @@ function doKick(ent) {
 
 function doOverhead(ent) {
   if (ent.kickCooldown > 0) return;
+  if (ent.isPlayer && ball.x > NET_X) return;
+  if (!ent.isPlayer && ball.x < NET_X) return;
   const dx = ball.x - ent.x;
   const dy = ball.y - ent.y;
   const hitW = fireballActive ? 25 : 70;
