@@ -2074,13 +2074,16 @@ document.getElementById('backBtn').addEventListener('click', () => {
 });
 
 document.getElementById('createRoomBtn').addEventListener('click', () => {
+  if (!db) { document.getElementById('onlineStatus').textContent = 'Firebase未接続'; return; }
   const roomId = String(Math.floor(1000 + Math.random() * 9000));
   roomRef = db.ref('rooms/' + roomId);
-  roomRef.set({ createdAt: Date.now(), guestJoined: false });
+  roomRef.set({ createdAt: Date.now(), guestJoined: false }).then(() => {
+    document.getElementById('roomCodeDisplay').textContent = 'ルームID: ' + roomId;
+    document.getElementById('onlineStatus').textContent = '相手の参加を待っています...';
+  }).catch(err => {
+    document.getElementById('onlineStatus').textContent = 'エラー: ' + err.message;
+  });
   roomRef.onDisconnect().remove();
-
-  document.getElementById('roomCodeDisplay').textContent = 'ルームID: ' + roomId;
-  document.getElementById('onlineStatus').textContent = '相手の参加を待っています...';
   mode = 'host';
 
   roomRef.child('guestJoined').on('value', snap => {
@@ -2100,7 +2103,8 @@ document.getElementById('joinRoomBtn').addEventListener('click', () => {
     return;
   }
   const ref = db.ref('rooms/' + id);
-  ref.once('value', snap => {
+  document.getElementById('onlineStatus').textContent = '部屋を検索中...';
+  ref.once('value').then(snap => {
     if (!snap.exists()) {
       document.getElementById('onlineStatus').textContent = 'その部屋は見つかりません';
       return;
@@ -2111,6 +2115,8 @@ document.getElementById('joinRoomBtn').addEventListener('click', () => {
     pendingGameMode = 'online';
     document.getElementById('onlineMenu').style.display = 'none';
     showCharacterSelect();
+  }).catch(err => {
+    document.getElementById('onlineStatus').textContent = 'エラー: ' + err.message;
   });
 });
 
