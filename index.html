@@ -1894,7 +1894,7 @@ function gameLoop(ts) {
     if (gameState === 'play') {
       updatePlayer(cpu, localInput());
       updatePlayer(player, remoteInput);
-      updateBallSubsteps(false);
+      updateBallSubsteps(true);
       updateEffects();
     }
     netTimer++;
@@ -1906,19 +1906,24 @@ function gameLoop(ts) {
       pointMsg = remoteHostState.pointMsg;
       pointTimer = remoteHostState.pointTimer;
 
-      ball.vx = remoteHostState.ball.vx; ball.vy = remoteHostState.ball.vy;
-      ball.spin = remoteHostState.ball.spin;
-      const bdx = remoteHostState.ball.x - ball.x;
-      const bdy = remoteHostState.ball.y - ball.y;
-      if (Math.abs(bdx) > 50 || Math.abs(bdy) > 50) {
-        ball.x = remoteHostState.ball.x;
-        ball.y = remoteHostState.ball.y;
-      } else {
-        ball.x += bdx * 0.6;
-        ball.y += bdy * 0.6;
+      const rbx = remoteHostState.ball.x, rby = remoteHostState.ball.y;
+      const bdx = rbx - ball.x, bdy = rby - ball.y;
+      const dist = Math.sqrt(bdx * bdx + bdy * bdy);
+      if (dist > 80) {
+        ball.x = rbx; ball.y = rby;
+        ball.vx = remoteHostState.ball.vx;
+        ball.vy = remoteHostState.ball.vy;
+      } else if (dist > 5) {
+        ball.x += bdx * 0.15;
+        ball.y += bdy * 0.15;
+        ball.vx += (remoteHostState.ball.vx - ball.vx) * 0.3;
+        ball.vy += (remoteHostState.ball.vy - ball.vy) * 0.3;
       }
+      ball.spin = remoteHostState.ball.spin;
 
-      player.x = remoteHostState.player.x; player.y = remoteHostState.player.y;
+      const rpx = remoteHostState.player.x, rpy = remoteHostState.player.y;
+      player.x += (rpx - player.x) * 0.3;
+      player.y += (rpy - player.y) * 0.3;
       player.facing = remoteHostState.player.facing;
       player.limbAnim = remoteHostState.player.limbAnim;
       player.onGround = remoteHostState.player.onGround;
@@ -1926,9 +1931,8 @@ function gameLoop(ts) {
       player.kickEffect = remoteHostState.player.kickEffect;
 
       if (wasGameState !== 'play' && gameState === 'play') {
-        // ホストが得点後にリセットしたのでゲスト側の自キャラもリセット
         cpu.x = W * 0.75; cpu.y = GROUND; cpu.vx = 0; cpu.vy = 0; cpu.onGround = true;
-        ball.x = remoteHostState.ball.x; ball.y = remoteHostState.ball.y;
+        ball.x = rbx; ball.y = rby;
         ball.trail = [];
         effects = [];
       }
