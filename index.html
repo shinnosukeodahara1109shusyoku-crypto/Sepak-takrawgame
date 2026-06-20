@@ -1878,7 +1878,7 @@ function gameLoop(ts) {
     netTimer++;
     if (roomRef) {
       if (netTimer % 2 === 0) roomRef.child('hostInput').set(localInput());
-      if (netTimer % 3 === 0) {
+      if (netTimer % 2 === 0) {
         roomRef.child('hostState').set({
           ball: { x: ball.x, y: ball.y, vx: ball.vx, vy: ball.vy, spin: ball.spin },
           score, gameState, pointMsg, pointTimer,
@@ -1898,7 +1898,7 @@ function gameLoop(ts) {
       updateEffects();
     }
     netTimer++;
-    if (roomRef && netTimer % 2 === 0) roomRef.child('guestInput').set(localInput());
+    if (roomRef) roomRef.child('guestInput').set(localInput());
 
     if (remoteHostState) {
       score = remoteHostState.score;
@@ -1908,10 +1908,15 @@ function gameLoop(ts) {
 
       ball.vx = remoteHostState.ball.vx; ball.vy = remoteHostState.ball.vy;
       ball.spin = remoteHostState.ball.spin;
-      // 位置はホストへ滑らかに補正することで、毎フレームのスナップによる
-      // 「速すぎる」見え方を防ぐ
-      ball.x += (remoteHostState.ball.x - ball.x) * 0.3;
-      ball.y += (remoteHostState.ball.y - ball.y) * 0.3;
+      const bdx = remoteHostState.ball.x - ball.x;
+      const bdy = remoteHostState.ball.y - ball.y;
+      if (Math.abs(bdx) > 50 || Math.abs(bdy) > 50) {
+        ball.x = remoteHostState.ball.x;
+        ball.y = remoteHostState.ball.y;
+      } else {
+        ball.x += bdx * 0.6;
+        ball.y += bdy * 0.6;
+      }
 
       player.x = remoteHostState.player.x; player.y = remoteHostState.player.y;
       player.facing = remoteHostState.player.facing;
