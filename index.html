@@ -1906,7 +1906,7 @@ function gameLoop(ts) {
         roomRef.child('hostState').set({
           ball: { x: ball.x, y: ball.y, vx: ball.vx, vy: ball.vy, spin: ball.spin },
           score, gameState, pointMsg, pointTimer,
-          _t: Date.now(),
+          _rtt: netLatency.rtt,
           player: {
             x: player.x, y: player.y, facing: player.facing, limbAnim: player.limbAnim,
             onGround: player.onGround, overheadState: player.overheadState, kickEffect: player.kickEffect,
@@ -1990,6 +1990,7 @@ function gameLoop(ts) {
   drawPlayer(cpu);
   drawScore();
   drawSpecialGauge();
+  if (mode === 'host' || mode === 'guest') drawLatency();
   drawOverlay();
   drawSpecialCutIn();
 }
@@ -2174,20 +2175,29 @@ document.getElementById('joinRoomBtn').addEventListener('click', () => {
   });
 });
 
-let netLatency = { rtt: 0, hostToGuest: 0, guestToHost: 0, samples: [] };
+let netLatency = { rtt: 0, hostToGuest: 0, samples: [] };
 let pingTimer = 0;
 
-function logLatency() {
+function drawLatency() {
   const s = netLatency.samples;
   if (s.length === 0) return;
+  const last = Math.round(s[s.length - 1]);
   const avg = Math.round(s.reduce((a, b) => a + b, 0) / s.length);
   const min = Math.round(Math.min(...s));
   const max = Math.round(Math.max(...s));
-  const last = Math.round(s[s.length - 1]);
-  console.log(
-    `%c[通信遅延] RTT: ${last}ms (平均: ${avg}ms, 最小: ${min}ms, 最大: ${max}ms, 計測: ${s.length}回)`,
-    'color: #0ff; font-weight: bold; font-size: 14px'
-  );
+  const color = last < 100 ? '#0f0' : last < 200 ? '#ff0' : last < 400 ? '#f80' : '#f00';
+  const label = last < 100 ? '快適' : last < 200 ? 'やや遅延' : last < 400 ? 'ラグあり' : '高遅延';
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(4, 4, 220, 68);
+  ctx.font = 'bold 16px monospace';
+  ctx.fillStyle = color;
+  ctx.fillText(`RTT: ${last}ms [${label}]`, 12, 24);
+  ctx.font = '12px monospace';
+  ctx.fillStyle = '#ccc';
+  ctx.fillText(`平均: ${avg}ms  最小: ${min}ms  最大: ${max}ms`, 12, 42);
+  ctx.fillText(`片道: ~${Math.round(last/2)}ms  計測: ${s.length}回`, 12, 58);
+  ctx.restore();
 }
 
 function startOnlineGame() {
@@ -2195,7 +2205,7 @@ function startOnlineGame() {
   resetEntities();
   gameState = 'play';
   setTouchControlsVisible(true);
-  netLatency = { rtt: 0, hostToGuest: 0, guestToHost: 0, samples: [] };
+  netLatency = { rtt: 0, hostToGuest: 0, samples: [] };
   pingTimer = 0;
 
   if (mode === 'host') {
@@ -2209,11 +2219,6 @@ function startOnlineGame() {
       netLatency.rtt = rtt;
       netLatency.samples.push(rtt);
       if (netLatency.samples.length > 30) netLatency.samples.shift();
-      console.log(
-        `%c[HOST] RTT実測: ${Math.round(rtt)}ms | ゲスト入力→ホスト受信: ~${Math.round(rtt / 2)}ms | ホスト状態→ゲスト受信: ~${Math.round(rtt / 2)}ms`,
-        'color: #0f0; font-weight: bold'
-      );
-      logLatency();
     });
   } else {
     roomRef.child('hostInput').on('value', snap => {
@@ -2221,24 +2226,18 @@ function startOnlineGame() {
     });
     roomRef.child('hostState').on('value', snap => {
       remoteHostState = snap.val();
-      if (remoteHostState && remoteHostState._t) {
-        const oneWay = Date.now() - remoteHostState._t;
-        netLatency.hostToGuest = oneWay;
-        console.log(
-          `%c[GUEST] ホスト→ゲスト片道: ${oneWay}ms (時刻差ベース、端末時刻のずれ含む)`,
-          'color: #ff0'
-        );
+      if (remoteHostState && remoteHostState._rtt) {
+        netLatency.rtt = remoteHostState._rtt;
+        if (!netLatency.samples.length || netLatency.samples[netLatency.samples.length-1] !== remoteHostState._rtt) {
+          netLatency.samples.push(remoteHostState._rtt);
+          if (netLatency.samples.length > 30) netLatency.samples.shift();
+        }
       }
     });
     roomRef.child('ping').on('value', snap => {
       const v = snap.val();
       if (!v || !v.t) return;
-      roomRef.child('pong').set({ t: v.t, gt: performance.now() });
-      const oneWay = Date.now() - v.ts;
-      console.log(
-        `%c[GUEST] ping受信 → pong返送 (ホスト→ゲスト片道: ${oneWay}ms、時刻差含む)`,
-        'color: #fa0'
-      );
+      roomRef.child('pong').set({ t: v.t });
     });
   }
 
