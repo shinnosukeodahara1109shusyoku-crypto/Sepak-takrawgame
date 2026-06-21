@@ -1906,6 +1906,7 @@ function gameLoop(ts) {
         roomRef.child('hostState').set({
           ball: { x: ball.x, y: ball.y, vx: ball.vx, vy: ball.vy, spin: ball.spin },
           score, gameState, pointMsg, pointTimer,
+          _t: Date.now(),
           player: {
             x: player.x, y: player.y, facing: player.facing, limbAnim: player.limbAnim,
             onGround: player.onGround, overheadState: player.overheadState, kickEffect: player.kickEffect,
@@ -1915,6 +1916,10 @@ function gameLoop(ts) {
             onGround: cpu.onGround, overheadState: cpu.overheadState, kickEffect: cpu.kickEffect,
           },
         });
+      }
+      pingTimer++;
+      if (pingTimer % 60 === 0) {
+        roomRef.child('ping').set({ t: performance.now(), ts: Date.now() });
       }
     }
   } else if (mode === 'guest') {
@@ -2169,15 +2174,46 @@ document.getElementById('joinRoomBtn').addEventListener('click', () => {
   });
 });
 
+let netLatency = { rtt: 0, hostToGuest: 0, guestToHost: 0, samples: [] };
+let pingTimer = 0;
+
+function logLatency() {
+  const s = netLatency.samples;
+  if (s.length === 0) return;
+  const avg = Math.round(s.reduce((a, b) => a + b, 0) / s.length);
+  const min = Math.round(Math.min(...s));
+  const max = Math.round(Math.max(...s));
+  const last = Math.round(s[s.length - 1]);
+  console.log(
+    `%c[通信遅延] RTT: ${last}ms (平均: ${avg}ms, 最小: ${min}ms, 最大: ${max}ms, 計測: ${s.length}回)`,
+    'color: #0ff; font-weight: bold; font-size: 14px'
+  );
+}
+
 function startOnlineGame() {
   document.getElementById('startScreen').style.display = 'none';
   resetEntities();
   gameState = 'play';
   setTouchControlsVisible(true);
+  netLatency = { rtt: 0, hostToGuest: 0, guestToHost: 0, samples: [] };
+  pingTimer = 0;
 
   if (mode === 'host') {
     roomRef.child('guestInput').on('value', snap => {
       remoteInput = snap.val() || remoteInput;
+    });
+    roomRef.child('pong').on('value', snap => {
+      const v = snap.val();
+      if (!v || !v.t) return;
+      const rtt = performance.now() - v.t;
+      netLatency.rtt = rtt;
+      netLatency.samples.push(rtt);
+      if (netLatency.samples.length > 30) netLatency.samples.shift();
+      console.log(
+        `%c[HOST] RTT実測: ${Math.round(rtt)}ms | ゲスト入力→ホスト受信: ~${Math.round(rtt / 2)}ms | ホスト状態→ゲスト受信: ~${Math.round(rtt / 2)}ms`,
+        'color: #0f0; font-weight: bold'
+      );
+      logLatency();
     });
   } else {
     roomRef.child('hostInput').on('value', snap => {
@@ -2185,6 +2221,24 @@ function startOnlineGame() {
     });
     roomRef.child('hostState').on('value', snap => {
       remoteHostState = snap.val();
+      if (remoteHostState && remoteHostState._t) {
+        const oneWay = Date.now() - remoteHostState._t;
+        netLatency.hostToGuest = oneWay;
+        console.log(
+          `%c[GUEST] ホスト→ゲスト片道: ${oneWay}ms (時刻差ベース、端末時刻のずれ含む)`,
+          'color: #ff0'
+        );
+      }
+    });
+    roomRef.child('ping').on('value', snap => {
+      const v = snap.val();
+      if (!v || !v.t) return;
+      roomRef.child('pong').set({ t: v.t, gt: performance.now() });
+      const oneWay = Date.now() - v.ts;
+      console.log(
+        `%c[GUEST] ping受信 → pong返送 (ホスト→ゲスト片道: ${oneWay}ms、時刻差含む)`,
+        'color: #fa0'
+      );
     });
   }
 
