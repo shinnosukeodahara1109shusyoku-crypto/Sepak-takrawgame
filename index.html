@@ -1901,12 +1901,12 @@ function gameLoop(ts) {
     }
     netTimer++;
     if (roomRef) {
-      if (netTimer % 3 === 0) roomRef.child('hostInput').set(localInput());
-      if (netTimer % 3 === 0) {
+      if (netTimer % 10 === 0) {
         roomRef.child('hostState').set({
           ball: { x: ball.x, y: ball.y, vx: ball.vx, vy: ball.vy, spin: ball.spin },
           score, gameState, pointMsg, pointTimer,
           _rtt: netLatency.rtt,
+          input: localInput(),
           player: {
             x: player.x, y: player.y, facing: player.facing, limbAnim: player.limbAnim,
             onGround: player.onGround, overheadState: player.overheadState, kickEffect: player.kickEffect,
@@ -1918,8 +1918,8 @@ function gameLoop(ts) {
         });
       }
       pingTimer++;
-      if (pingTimer % 60 === 0) {
-        roomRef.child('ping').set({ t: performance.now(), ts: Date.now() });
+      if (pingTimer % 120 === 0) {
+        roomRef.child('ping').set({ t: performance.now() });
       }
     }
   } else if (mode === 'guest') {
@@ -1930,7 +1930,17 @@ function gameLoop(ts) {
       updateEffects();
     }
     netTimer++;
-    if (roomRef && netTimer % 3 === 0) roomRef.child('guestInput').set(localInput());
+    if (roomRef) {
+      const gi = localInput();
+      const changed = !lastSentGuestInput ||
+        gi.left !== lastSentGuestInput.left || gi.right !== lastSentGuestInput.right ||
+        gi.jump !== lastSentGuestInput.jump || gi.kick !== lastSentGuestInput.kick ||
+        gi.overhead !== lastSentGuestInput.overhead || gi.special !== lastSentGuestInput.special;
+      if (changed || netTimer % 10 === 0) {
+        roomRef.child('guestInput').set(gi);
+        lastSentGuestInput = gi;
+      }
+    }
 
     if (remoteHostState) {
       score = remoteHostState.score;
@@ -2177,6 +2187,7 @@ document.getElementById('joinRoomBtn').addEventListener('click', () => {
 
 let netLatency = { rtt: 0, hostToGuest: 0, samples: [] };
 let pingTimer = 0;
+let lastSentGuestInput = null;
 
 function drawLatency() {
   const s = netLatency.samples;
@@ -2221,11 +2232,11 @@ function startOnlineGame() {
       if (netLatency.samples.length > 30) netLatency.samples.shift();
     });
   } else {
-    roomRef.child('hostInput').on('value', snap => {
-      remoteInput = snap.val() || remoteInput;
-    });
     roomRef.child('hostState').on('value', snap => {
       remoteHostState = snap.val();
+      if (remoteHostState && remoteHostState.input) {
+        remoteInput = remoteHostState.input;
+      }
       if (remoteHostState && remoteHostState._rtt) {
         netLatency.rtt = remoteHostState._rtt;
         if (!netLatency.samples.length || netLatency.samples[netLatency.samples.length-1] !== remoteHostState._rtt) {
