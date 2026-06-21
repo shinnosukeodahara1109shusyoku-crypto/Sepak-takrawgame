@@ -1910,6 +1910,10 @@ function gameLoop(ts) {
             x: player.x, y: player.y, facing: player.facing, limbAnim: player.limbAnim,
             onGround: player.onGround, overheadState: player.overheadState, kickEffect: player.kickEffect,
           },
+          cpu: {
+            x: cpu.x, y: cpu.y, facing: cpu.facing, limbAnim: cpu.limbAnim,
+            onGround: cpu.onGround, overheadState: cpu.overheadState, kickEffect: cpu.kickEffect,
+          },
         });
       }
     }
@@ -1917,7 +1921,6 @@ function gameLoop(ts) {
     const wasGameState = gameState;
     if (gameState === 'play') {
       updatePlayer(cpu, localInput());
-      updatePlayer(player, remoteInput);
       updateBallSubsteps(true);
       updateEffects();
     }
@@ -1937,22 +1940,35 @@ function gameLoop(ts) {
         ball.x = rbx; ball.y = rby;
         ball.vx = remoteHostState.ball.vx;
         ball.vy = remoteHostState.ball.vy;
-      } else if (dist > 3) {
-        ball.x += bdx * 0.25;
-        ball.y += bdy * 0.25;
-        ball.vx += (remoteHostState.ball.vx - ball.vx) * 0.5;
-        ball.vy += (remoteHostState.ball.vy - ball.vy) * 0.5;
+      } else {
+        ball.x += bdx * 0.3;
+        ball.y += bdy * 0.3;
+        ball.vx += (remoteHostState.ball.vx - ball.vx) * 0.6;
+        ball.vy += (remoteHostState.ball.vy - ball.vy) * 0.6;
       }
       ball.spin = remoteHostState.ball.spin;
 
-      const rpx = remoteHostState.player.x, rpy = remoteHostState.player.y;
-      player.x += (rpx - player.x) * 0.5;
-      player.y += (rpy - player.y) * 0.5;
-      player.facing = remoteHostState.player.facing;
-      player.limbAnim = remoteHostState.player.limbAnim;
-      player.onGround = remoteHostState.player.onGround;
-      player.overheadState = remoteHostState.player.overheadState;
-      player.kickEffect = remoteHostState.player.kickEffect;
+      if (remoteHostState.player) {
+        const rp = remoteHostState.player;
+        player.x = rp.x;
+        player.y = rp.y;
+        player.facing = rp.facing;
+        player.limbAnim = rp.limbAnim;
+        player.onGround = rp.onGround;
+        player.overheadState = rp.overheadState;
+        player.kickEffect = rp.kickEffect;
+      }
+
+      if (remoteHostState.cpu) {
+        const rc = remoteHostState.cpu;
+        cpu.x += (rc.x - cpu.x) * 0.4;
+        cpu.y += (rc.y - cpu.y) * 0.4;
+        cpu.facing = rc.facing;
+        cpu.limbAnim = rc.limbAnim;
+        cpu.onGround = rc.onGround;
+        cpu.overheadState = rc.overheadState;
+        cpu.kickEffect = rc.kickEffect;
+      }
 
       if (wasGameState !== 'play' && gameState === 'play') {
         cpu.x = W * 0.75; cpu.y = GROUND; cpu.vx = 0; cpu.vy = 0; cpu.onGround = true;
