@@ -2223,13 +2223,11 @@ let webrtcSetupPromise = null;
 
 let RTC_CONFIG = {
   iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun.relay.metered.ca:80' },
-    { urls: 'turn:global.relay.metered.ca:80', username: 'e330b48ad13e909d69664b5a', credential: 'rsZ2BL6l3l4CHD1c' },
-    { urls: 'turn:global.relay.metered.ca:80?transport=tcp', username: 'e330b48ad13e909d69664b5a', credential: 'rsZ2BL6l3l4CHD1c' },
-    { urls: 'turn:global.relay.metered.ca:443', username: 'e330b48ad13e909d69664b5a', credential: 'rsZ2BL6l3l4CHD1c' },
-    { urls: 'turns:global.relay.metered.ca:443', username: 'e330b48ad13e909d69664b5a', credential: 'rsZ2BL6l3l4CHD1c' },
+    { urls: 'turn:global.relay.metered.ca:80', username: 'e330b48ad13e909d69664b5a', credential: 'rsZ2BL6l3I4CHD1c' },
+    { urls: 'turn:global.relay.metered.ca:80?transport=tcp', username: 'e330b48ad13e909d69664b5a', credential: 'rsZ2BL6l3I4CHD1c' },
+    { urls: 'turn:global.relay.metered.ca:443', username: 'e330b48ad13e909d69664b5a', credential: 'rsZ2BL6l3I4CHD1c' },
+    { urls: 'turns:global.relay.metered.ca:443?transport=tcp', username: 'e330b48ad13e909d69664b5a', credential: 'rsZ2BL6l3I4CHD1c' },
   ],
   iceCandidatePoolSize: 10,
 };
