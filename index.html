@@ -2280,64 +2280,88 @@ function setupWebRTC() {
       if (ev.candidate && roomRef) {
         const path = mode === 'host' ? 'hostCandidates' : 'guestCandidates';
         roomRef.child(path).push(JSON.stringify(ev.candidate));
+        console.log('[WebRTC] ICE candidate sent:', path);
       }
     };
 
+    peerConnection.oniceconnectionstatechange = () => {
+      console.log('[WebRTC] ICE state:', peerConnection.iceConnectionState);
+    };
+
+    peerConnection.onconnectionstatechange = () => {
+      console.log('[WebRTC] Connection state:', peerConnection.connectionState);
+    };
+
     if (mode === 'host') {
+      console.log('[WebRTC] Host: creating DataChannel and offer...');
       const ch = peerConnection.createDataChannel('game', { ordered: false, maxRetransmits: 0 });
       setupDataChannel(ch);
 
       peerConnection.createOffer().then(offer => {
+        console.log('[WebRTC] Host: offer created');
         return peerConnection.setLocalDescription(offer);
       }).then(() => {
+        console.log('[WebRTC] Host: writing offer to Firebase');
         roomRef.child('offer').set(JSON.stringify(peerConnection.localDescription));
-      });
+      }).catch(err => console.error('[WebRTC] Host offer error:', err));
 
       roomRef.child('answer').on('value', snap => {
         const v = snap.val();
         if (!v) return;
+        console.log('[WebRTC] Host: received answer from guest');
         peerConnection.setRemoteDescription(JSON.parse(v)).then(() => {
+          console.log('[WebRTC] Host: remote description set');
           roomRef.child('answer').off();
-        });
+        }).catch(err => console.error('[WebRTC] Host setRemote error:', err));
       });
 
       roomRef.child('guestCandidates').on('child_added', snap => {
         const c = snap.val();
-        if (c) peerConnection.addIceCandidate(JSON.parse(c));
+        if (c) {
+          peerConnection.addIceCandidate(JSON.parse(c)).catch(err => console.error('[WebRTC] Host addICE error:', err));
+        }
       });
 
       const checkOpen = setInterval(() => {
-        if (webrtcConnected) { clearInterval(checkOpen); resolve(); }
+        if (webrtcConnected) { console.log('[WebRTC] Host: CONNECTED!'); clearInterval(checkOpen); resolve(); }
       }, 100);
-      setTimeout(() => { clearInterval(checkOpen); resolve(); }, 30000);
+      setTimeout(() => { console.log('[WebRTC] Host: TIMEOUT'); clearInterval(checkOpen); resolve(); }, 30000);
 
     } else {
+      console.log('[WebRTC] Guest: waiting for offer...');
       peerConnection.ondatachannel = (ev) => {
+        console.log('[WebRTC] Guest: DataChannel received');
         setupDataChannel(ev.channel);
       };
 
       roomRef.child('offer').on('value', snap => {
         const v = snap.val();
         if (!v) return;
+        console.log('[WebRTC] Guest: offer received, creating answer...');
         peerConnection.setRemoteDescription(JSON.parse(v)).then(() => {
+          console.log('[WebRTC] Guest: remote description set');
           return peerConnection.createAnswer();
         }).then(answer => {
+          console.log('[WebRTC] Guest: answer created');
           return peerConnection.setLocalDescription(answer);
         }).then(() => {
+          console.log('[WebRTC] Guest: writing answer to Firebase');
           roomRef.child('answer').set(JSON.stringify(peerConnection.localDescription));
           roomRef.child('offer').off();
-        });
+        }).catch(err => console.error('[WebRTC] Guest answer error:', err));
       });
 
       roomRef.child('hostCandidates').on('child_added', snap => {
         const c = snap.val();
-        if (c) peerConnection.addIceCandidate(JSON.parse(c));
+        if (c) {
+          peerConnection.addIceCandidate(JSON.parse(c)).catch(err => console.error('[WebRTC] Guest addICE error:', err));
+        }
       });
 
       const checkOpen = setInterval(() => {
-        if (webrtcConnected) { clearInterval(checkOpen); resolve(); }
+        if (webrtcConnected) { console.log('[WebRTC] Guest: CONNECTED!'); clearInterval(checkOpen); resolve(); }
       }, 100);
-      setTimeout(() => { clearInterval(checkOpen); resolve(); }, 30000);
+      setTimeout(() => { console.log('[WebRTC] Guest: TIMEOUT'); clearInterval(checkOpen); resolve(); }, 30000);
     }
   });
 }
