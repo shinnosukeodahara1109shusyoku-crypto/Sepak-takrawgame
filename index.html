@@ -867,7 +867,8 @@ function doOverhead(ent) {
 }
 
 function doSpecial(ent) {
-  const cost = ent.isPlayer ? PLAYER_SPECIAL_COST : cpuSpecialCost;
+  const isOnline = (mode === 'host' || mode === 'guest');
+  const cost = (ent.isPlayer || isOnline) ? PLAYER_SPECIAL_COST : cpuSpecialCost;
   if (ent.specialGauge < cost) return;
   if (specialCutInActive) return;
   ent.specialGauge = 0;
@@ -1883,7 +1884,14 @@ function gameLoop(ts) {
       pointTimer = Math.max(0, pointTimer - 1);
     }
   } else if (mode === 'host') {
-    if (gameState === 'play') {
+    if (specialCutInActive) {
+      specialCutInTimer--;
+      if (specialCutInTimer <= 0) {
+        specialCutInActive = false;
+        executeSpecialAttack(specialCutInEntity || player);
+        specialCutInEntity = null;
+      }
+    } else if (gameState === 'play') {
       updatePlayer(player, localInput());
       updatePlayer(cpu, remoteInput);
       updateBallSubsteps(true);
@@ -1908,13 +1916,18 @@ function gameLoop(ts) {
           score, gameState, pointMsg, pointTimer,
           _rtt: netLatency.rtt,
           input: localInput(),
+          specialCutInActive, specialCutInTimer,
+          specialCutInIsPlayer: specialCutInEntity ? specialCutInEntity.isPlayer : null,
+          fireballActive,
           player: {
             x: player.x, y: player.y, facing: player.facing, limbAnim: player.limbAnim,
             onGround: player.onGround, overheadState: player.overheadState, kickEffect: player.kickEffect,
+            specialGauge: player.specialGauge,
           },
           cpu: {
             x: cpu.x, y: cpu.y, facing: cpu.facing, limbAnim: cpu.limbAnim,
             onGround: cpu.onGround, overheadState: cpu.overheadState, kickEffect: cpu.kickEffect,
+            specialGauge: cpu.specialGauge,
           },
         });
       }
@@ -1929,13 +1942,18 @@ function gameLoop(ts) {
           score, gameState, pointMsg, pointTimer,
           _rtt: netLatency.rtt,
           input: localInput(),
+          specialCutInActive, specialCutInTimer,
+          specialCutInIsPlayer: specialCutInEntity ? specialCutInEntity.isPlayer : null,
+          fireballActive,
           player: {
             x: player.x, y: player.y, facing: player.facing, limbAnim: player.limbAnim,
             onGround: player.onGround, overheadState: player.overheadState, kickEffect: player.kickEffect,
+            specialGauge: player.specialGauge,
           },
           cpu: {
             x: cpu.x, y: cpu.y, facing: cpu.facing, limbAnim: cpu.limbAnim,
             onGround: cpu.onGround, overheadState: cpu.overheadState, kickEffect: cpu.kickEffect,
+            specialGauge: cpu.specialGauge,
           },
         });
       }
@@ -1946,7 +1964,7 @@ function gameLoop(ts) {
     }
   } else if (mode === 'guest') {
     const wasGameState = gameState;
-    if (gameState === 'play') {
+    if (gameState === 'play' && !specialCutInActive) {
       updatePlayer(cpu, localInput());
       updateBallSubsteps(true);
       updateEffects();
@@ -1998,6 +2016,7 @@ function gameLoop(ts) {
         player.onGround = rp.onGround;
         player.overheadState = rp.overheadState;
         player.kickEffect = rp.kickEffect;
+        if (rp.specialGauge != null) player.specialGauge = rp.specialGauge;
       }
 
       if (remoteHostState.cpu) {
@@ -2009,6 +2028,16 @@ function gameLoop(ts) {
         cpu.onGround = rc.onGround;
         cpu.overheadState = rc.overheadState;
         cpu.kickEffect = rc.kickEffect;
+        if (rc.specialGauge != null) cpu.specialGauge = rc.specialGauge;
+      }
+
+      specialCutInActive = !!remoteHostState.specialCutInActive;
+      specialCutInTimer = remoteHostState.specialCutInTimer || 0;
+      fireballActive = !!remoteHostState.fireballActive;
+      if (remoteHostState.specialCutInIsPlayer === true) {
+        specialCutInEntity = player;
+      } else if (remoteHostState.specialCutInIsPlayer === false) {
+        specialCutInEntity = cpu;
       }
 
       if (wasGameState !== 'play' && gameState === 'play') {
