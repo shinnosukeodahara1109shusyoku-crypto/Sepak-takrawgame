@@ -1900,7 +1900,29 @@ function gameLoop(ts) {
       pointTimer = Math.max(0, pointTimer - 1);
     }
     netTimer++;
-    if (roomRef) {
+    if (webrtcConnected) {
+      if (netTimer % 2 === 0) {
+        sendViaChannel({
+          type: 'state',
+          ball: { x: ball.x, y: ball.y, vx: ball.vx, vy: ball.vy, spin: ball.spin },
+          score, gameState, pointMsg, pointTimer,
+          _rtt: netLatency.rtt,
+          input: localInput(),
+          player: {
+            x: player.x, y: player.y, facing: player.facing, limbAnim: player.limbAnim,
+            onGround: player.onGround, overheadState: player.overheadState, kickEffect: player.kickEffect,
+          },
+          cpu: {
+            x: cpu.x, y: cpu.y, facing: cpu.facing, limbAnim: cpu.limbAnim,
+            onGround: cpu.onGround, overheadState: cpu.overheadState, kickEffect: cpu.kickEffect,
+          },
+        });
+      }
+      pingTimer++;
+      if (pingTimer % 60 === 0) {
+        sendViaChannel({ type: 'ping', t: performance.now() });
+      }
+    } else if (roomRef) {
       if (netTimer % 10 === 0) {
         roomRef.child('hostState').set({
           ball: { x: ball.x, y: ball.y, vx: ball.vx, vy: ball.vy, spin: ball.spin },
@@ -1930,14 +1952,18 @@ function gameLoop(ts) {
       updateEffects();
     }
     netTimer++;
-    if (roomRef) {
+    {
       const gi = localInput();
       const changed = !lastSentGuestInput ||
         gi.left !== lastSentGuestInput.left || gi.right !== lastSentGuestInput.right ||
         gi.jump !== lastSentGuestInput.jump || gi.kick !== lastSentGuestInput.kick ||
         gi.overhead !== lastSentGuestInput.overhead || gi.special !== lastSentGuestInput.special;
-      if (changed || netTimer % 10 === 0) {
-        roomRef.child('guestInput').set(gi);
+      if (changed || netTimer % 3 === 0) {
+        if (webrtcConnected) {
+          sendViaChannel({ type: 'input', input: gi });
+        } else if (roomRef) {
+          roomRef.child('guestInput').set(gi);
+        }
         lastSentGuestInput = gi;
       }
     }
@@ -2185,9 +2211,134 @@ document.getElementById('joinRoomBtn').addEventListener('click', () => {
   });
 });
 
-let netLatency = { rtt: 0, hostToGuest: 0, samples: [] };
+let netLatency = { rtt: 0, samples: [] };
 let pingTimer = 0;
 let lastSentGuestInput = null;
+let dataChannel = null;
+let peerConnection = null;
+let webrtcConnected = false;
+
+const RTC_CONFIG = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+  ]
+};
+
+function sendViaChannel(data) {
+  if (dataChannel && dataChannel.readyState === 'open') {
+    dataChannel.send(JSON.stringify(data));
+    return true;
+  }
+  return false;
+}
+
+function setupDataChannel(ch) {
+  dataChannel = ch;
+  dataChannel.onopen = () => {
+    webrtcConnected = true;
+    console.log('WebRTC DataChannel opened');
+  };
+  dataChannel.onclose = () => {
+    webrtcConnected = false;
+    console.log('WebRTC DataChannel closed');
+  };
+  dataChannel.onmessage = (ev) => {
+    try {
+      const msg = JSON.parse(ev.data);
+      if (msg.type === 'state') {
+        remoteHostState = msg;
+        if (msg.input) remoteInput = msg.input;
+        if (msg._rtt != null) {
+          netLatency.rtt = msg._rtt;
+          if (!netLatency.samples.length || netLatency.samples[netLatency.samples.length-1] !== msg._rtt) {
+            netLatency.samples.push(msg._rtt);
+            if (netLatency.samples.length > 30) netLatency.samples.shift();
+          }
+        }
+      } else if (msg.type === 'input') {
+        remoteInput = msg.input;
+      } else if (msg.type === 'ping') {
+        sendViaChannel({ type: 'pong', t: msg.t });
+      } else if (msg.type === 'pong') {
+        const rtt = performance.now() - msg.t;
+        netLatency.rtt = rtt;
+        netLatency.samples.push(rtt);
+        if (netLatency.samples.length > 30) netLatency.samples.shift();
+      }
+    } catch(e) {}
+  };
+}
+
+function setupWebRTC() {
+  return new Promise((resolve) => {
+    peerConnection = new RTCPeerConnection(RTC_CONFIG);
+
+    peerConnection.onicecandidate = (ev) => {
+      if (ev.candidate && roomRef) {
+        const path = mode === 'host' ? 'hostCandidates' : 'guestCandidates';
+        roomRef.child(path).push(JSON.stringify(ev.candidate));
+      }
+    };
+
+    if (mode === 'host') {
+      const ch = peerConnection.createDataChannel('game', { ordered: false, maxRetransmits: 0 });
+      setupDataChannel(ch);
+
+      peerConnection.createOffer().then(offer => {
+        return peerConnection.setLocalDescription(offer);
+      }).then(() => {
+        roomRef.child('offer').set(JSON.stringify(peerConnection.localDescription));
+      });
+
+      roomRef.child('answer').on('value', snap => {
+        const v = snap.val();
+        if (!v) return;
+        peerConnection.setRemoteDescription(JSON.parse(v)).then(() => {
+          roomRef.child('answer').off();
+        });
+      });
+
+      roomRef.child('guestCandidates').on('child_added', snap => {
+        const c = snap.val();
+        if (c) peerConnection.addIceCandidate(JSON.parse(c));
+      });
+
+      const checkOpen = setInterval(() => {
+        if (webrtcConnected) { clearInterval(checkOpen); resolve(); }
+      }, 100);
+      setTimeout(() => { clearInterval(checkOpen); resolve(); }, 10000);
+
+    } else {
+      peerConnection.ondatachannel = (ev) => {
+        setupDataChannel(ev.channel);
+      };
+
+      roomRef.child('offer').on('value', snap => {
+        const v = snap.val();
+        if (!v) return;
+        peerConnection.setRemoteDescription(JSON.parse(v)).then(() => {
+          return peerConnection.createAnswer();
+        }).then(answer => {
+          return peerConnection.setLocalDescription(answer);
+        }).then(() => {
+          roomRef.child('answer').set(JSON.stringify(peerConnection.localDescription));
+          roomRef.child('offer').off();
+        });
+      });
+
+      roomRef.child('hostCandidates').on('child_added', snap => {
+        const c = snap.val();
+        if (c) peerConnection.addIceCandidate(JSON.parse(c));
+      });
+
+      const checkOpen = setInterval(() => {
+        if (webrtcConnected) { clearInterval(checkOpen); resolve(); }
+      }, 100);
+      setTimeout(() => { clearInterval(checkOpen); resolve(); }, 10000);
+    }
+  });
+}
 
 function drawLatency() {
   const s = netLatency.samples;
@@ -2198,9 +2349,10 @@ function drawLatency() {
   const max = Math.round(Math.max(...s));
   const color = last < 100 ? '#0f0' : last < 200 ? '#ff0' : last < 400 ? '#f80' : '#f00';
   const label = last < 100 ? '快適' : last < 200 ? 'やや遅延' : last < 400 ? 'ラグあり' : '高遅延';
+  const connType = webrtcConnected ? 'WebRTC' : 'Firebase';
   ctx.save();
   ctx.fillStyle = 'rgba(0,0,0,0.7)';
-  ctx.fillRect(4, 4, 220, 68);
+  ctx.fillRect(4, 4, 240, 82);
   ctx.font = 'bold 16px monospace';
   ctx.fillStyle = color;
   ctx.fillText(`RTT: ${last}ms [${label}]`, 12, 24);
@@ -2208,6 +2360,8 @@ function drawLatency() {
   ctx.fillStyle = '#ccc';
   ctx.fillText(`平均: ${avg}ms  最小: ${min}ms  最大: ${max}ms`, 12, 42);
   ctx.fillText(`片道: ~${Math.round(last/2)}ms  計測: ${s.length}回`, 12, 58);
+  ctx.fillStyle = webrtcConnected ? '#0f0' : '#f80';
+  ctx.fillText(`接続: ${connType}`, 12, 74);
   ctx.restore();
 }
 
@@ -2216,41 +2370,30 @@ function startOnlineGame() {
   resetEntities();
   gameState = 'play';
   setTouchControlsVisible(true);
-  netLatency = { rtt: 0, hostToGuest: 0, samples: [] };
+  netLatency = { rtt: 0, samples: [] };
   pingTimer = 0;
+  webrtcConnected = false;
 
-  if (mode === 'host') {
-    roomRef.child('guestInput').on('value', snap => {
-      remoteInput = snap.val() || remoteInput;
-    });
-    roomRef.child('pong').on('value', snap => {
-      const v = snap.val();
-      if (!v || !v.t) return;
-      const rtt = performance.now() - v.t;
-      netLatency.rtt = rtt;
-      netLatency.samples.push(rtt);
-      if (netLatency.samples.length > 30) netLatency.samples.shift();
-    });
-  } else {
-    roomRef.child('hostState').on('value', snap => {
-      remoteHostState = snap.val();
-      if (remoteHostState && remoteHostState.input) {
-        remoteInput = remoteHostState.input;
+  setupWebRTC().then(() => {
+    if (!webrtcConnected) {
+      console.log('WebRTC接続失敗、Firebaseフォールバック');
+      if (mode === 'host') {
+        roomRef.child('guestInput').on('value', snap => {
+          remoteInput = snap.val() || remoteInput;
+        });
+      } else {
+        roomRef.child('hostState').on('value', snap => {
+          remoteHostState = snap.val();
+          if (remoteHostState && remoteHostState.input) remoteInput = remoteHostState.input;
+          if (remoteHostState && remoteHostState._rtt) {
+            netLatency.rtt = remoteHostState._rtt;
+            netLatency.samples.push(remoteHostState._rtt);
+            if (netLatency.samples.length > 30) netLatency.samples.shift();
+          }
+        });
       }
-      if (remoteHostState && remoteHostState._rtt) {
-        netLatency.rtt = remoteHostState._rtt;
-        if (!netLatency.samples.length || netLatency.samples[netLatency.samples.length-1] !== remoteHostState._rtt) {
-          netLatency.samples.push(remoteHostState._rtt);
-          if (netLatency.samples.length > 30) netLatency.samples.shift();
-        }
-      }
-    });
-    roomRef.child('ping').on('value', snap => {
-      const v = snap.val();
-      if (!v || !v.t) return;
-      roomRef.child('pong').set({ t: v.t });
-    });
-  }
+    }
+  });
 
   requestAnimationFrame(gameLoop);
 }
