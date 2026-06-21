@@ -2376,13 +2376,14 @@ function drawLatency() {
   const s = netLatency.samples;
   const connType = webrtcConnected ? 'WebRTC' : 'Firebase';
   ctx.save();
+  const bw = 260, bh = 82;
+  const bx = 10, by = 10;
   ctx.fillStyle = 'rgba(0,0,0,0.7)';
-  const ox = 60;
   if (s.length === 0) {
-    ctx.fillRect(ox, 4, 250, 32);
+    ctx.fillRect(bx, by, bw, 28);
     ctx.font = '12px monospace';
     ctx.fillStyle = webrtcConnected ? '#0f0' : '#f80';
-    ctx.fillText(`接続: ${connType}  計測中...`, ox + 8, 24);
+    ctx.fillText(`接続: ${connType}  計測中...`, bx + 10, by + 18);
     ctx.restore();
     return;
   }
@@ -2392,16 +2393,16 @@ function drawLatency() {
   const max = Math.round(Math.max(...s));
   const color = last < 100 ? '#0f0' : last < 200 ? '#ff0' : last < 400 ? '#f80' : '#f00';
   const label = last < 100 ? '快適' : last < 200 ? 'やや遅延' : last < 400 ? 'ラグあり' : '高遅延';
-  ctx.fillRect(ox, 4, 250, 82);
-  ctx.font = 'bold 16px monospace';
+  ctx.fillRect(bx, by, bw, bh);
+  ctx.font = 'bold 15px monospace';
   ctx.fillStyle = color;
-  ctx.fillText(`RTT: ${last}ms [${label}]`, ox + 8, 24);
-  ctx.font = '12px monospace';
+  ctx.fillText(`RTT: ${last}ms [${label}]`, bx + 10, by + 18);
+  ctx.font = '11px monospace';
   ctx.fillStyle = '#ccc';
-  ctx.fillText(`平均: ${avg}ms  最小: ${min}ms  最大: ${max}ms`, ox + 8, 42);
-  ctx.fillText(`片道: ~${Math.round(last/2)}ms  計測: ${s.length}回`, ox + 8, 58);
+  ctx.fillText(`平均:${avg}ms 最小:${min}ms 最大:${max}ms`, bx + 10, by + 36);
+  ctx.fillText(`片道:~${Math.round(last/2)}ms 計測:${s.length}回`, bx + 10, by + 52);
   ctx.fillStyle = webrtcConnected ? '#0f0' : '#f80';
-  ctx.fillText(`接続: ${connType}`, ox + 8, 74);
+  ctx.fillText(`接続: ${connType}`, bx + 10, by + 68);
   ctx.restore();
 }
 
