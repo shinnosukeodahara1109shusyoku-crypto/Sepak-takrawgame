@@ -2225,10 +2225,11 @@ let RTC_CONFIG = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' },
-    { urls: 'turn:numb.viagenie.ca', username: 'webrtc@live.com', credential: 'muazkh' },
-    { urls: 'turn:turn.bistri.com:80', username: 'homeo', credential: 'homeo' },
-    { urls: 'turn:turn.anyfirewall.com:443?transport=tcp', username: 'webrtc', credential: 'webrtc' },
+    { urls: 'stun:stun.relay.metered.ca:80' },
+    { urls: 'turn:global.relay.metered.ca:80', username: 'e330b48ad13e909d69664b5a', credential: 'rsZ2BL6l3l4CHD1c' },
+    { urls: 'turn:global.relay.metered.ca:80?transport=tcp', username: 'e330b48ad13e909d69664b5a', credential: 'rsZ2BL6l3l4CHD1c' },
+    { urls: 'turn:global.relay.metered.ca:443', username: 'e330b48ad13e909d69664b5a', credential: 'rsZ2BL6l3l4CHD1c' },
+    { urls: 'turns:global.relay.metered.ca:443', username: 'e330b48ad13e909d69664b5a', credential: 'rsZ2BL6l3l4CHD1c' },
   ],
   iceCandidatePoolSize: 10,
 };
