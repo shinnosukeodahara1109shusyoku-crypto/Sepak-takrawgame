@@ -2377,11 +2377,12 @@ function drawLatency() {
   const connType = webrtcConnected ? 'WebRTC' : 'Firebase';
   ctx.save();
   ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  const ox = 30;
   if (s.length === 0) {
-    ctx.fillRect(4, 4, 240, 32);
+    ctx.fillRect(ox, 4, 250, 32);
     ctx.font = '12px monospace';
     ctx.fillStyle = webrtcConnected ? '#0f0' : '#f80';
-    ctx.fillText(`接続: ${connType}  計測中...`, 12, 24);
+    ctx.fillText(`接続: ${connType}  計測中...`, ox + 8, 24);
     ctx.restore();
     return;
   }
@@ -2391,16 +2392,16 @@ function drawLatency() {
   const max = Math.round(Math.max(...s));
   const color = last < 100 ? '#0f0' : last < 200 ? '#ff0' : last < 400 ? '#f80' : '#f00';
   const label = last < 100 ? '快適' : last < 200 ? 'やや遅延' : last < 400 ? 'ラグあり' : '高遅延';
-  ctx.fillRect(4, 4, 240, 82);
+  ctx.fillRect(ox, 4, 250, 82);
   ctx.font = 'bold 16px monospace';
   ctx.fillStyle = color;
-  ctx.fillText(`RTT: ${last}ms [${label}]`, 12, 24);
+  ctx.fillText(`RTT: ${last}ms [${label}]`, ox + 8, 24);
   ctx.font = '12px monospace';
   ctx.fillStyle = '#ccc';
-  ctx.fillText(`平均: ${avg}ms  最小: ${min}ms  最大: ${max}ms`, 12, 42);
-  ctx.fillText(`片道: ~${Math.round(last/2)}ms  計測: ${s.length}回`, 12, 58);
+  ctx.fillText(`平均: ${avg}ms  最小: ${min}ms  最大: ${max}ms`, ox + 8, 42);
+  ctx.fillText(`片道: ~${Math.round(last/2)}ms  計測: ${s.length}回`, ox + 8, 58);
   ctx.fillStyle = webrtcConnected ? '#0f0' : '#f80';
-  ctx.fillText(`接続: ${connType}`, 12, 74);
+  ctx.fillText(`接続: ${connType}`, ox + 8, 74);
   ctx.restore();
 }
 
