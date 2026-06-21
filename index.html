@@ -2342,16 +2342,23 @@ function setupWebRTC() {
 
 function drawLatency() {
   const s = netLatency.samples;
-  if (s.length === 0) return;
+  const connType = webrtcConnected ? 'WebRTC' : 'Firebase';
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  if (s.length === 0) {
+    ctx.fillRect(4, 4, 240, 32);
+    ctx.font = '12px monospace';
+    ctx.fillStyle = webrtcConnected ? '#0f0' : '#f80';
+    ctx.fillText(`接続: ${connType}  計測中...`, 12, 24);
+    ctx.restore();
+    return;
+  }
   const last = Math.round(s[s.length - 1]);
   const avg = Math.round(s.reduce((a, b) => a + b, 0) / s.length);
   const min = Math.round(Math.min(...s));
   const max = Math.round(Math.max(...s));
   const color = last < 100 ? '#0f0' : last < 200 ? '#ff0' : last < 400 ? '#f80' : '#f00';
   const label = last < 100 ? '快適' : last < 200 ? 'やや遅延' : last < 400 ? 'ラグあり' : '高遅延';
-  const connType = webrtcConnected ? 'WebRTC' : 'Firebase';
-  ctx.save();
-  ctx.fillStyle = 'rgba(0,0,0,0.7)';
   ctx.fillRect(4, 4, 240, 82);
   ctx.font = 'bold 16px monospace';
   ctx.fillStyle = color;
@@ -2381,6 +2388,14 @@ function startOnlineGame() {
         roomRef.child('guestInput').on('value', snap => {
           remoteInput = snap.val() || remoteInput;
         });
+        roomRef.child('pong').on('value', snap => {
+          const v = snap.val();
+          if (!v || !v.t) return;
+          const rtt = performance.now() - v.t;
+          netLatency.rtt = rtt;
+          netLatency.samples.push(rtt);
+          if (netLatency.samples.length > 30) netLatency.samples.shift();
+        });
       } else {
         roomRef.child('hostState').on('value', snap => {
           remoteHostState = snap.val();
@@ -2390,6 +2405,11 @@ function startOnlineGame() {
             netLatency.samples.push(remoteHostState._rtt);
             if (netLatency.samples.length > 30) netLatency.samples.shift();
           }
+        });
+        roomRef.child('ping').on('value', snap => {
+          const v = snap.val();
+          if (!v || !v.t) return;
+          roomRef.child('pong').set({ t: v.t });
         });
       }
     }
