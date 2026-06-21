@@ -1901,8 +1901,8 @@ function gameLoop(ts) {
     }
     netTimer++;
     if (roomRef) {
-      if (netTimer % 2 === 0) roomRef.child('hostInput').set(localInput());
-      if (netTimer % 2 === 0) {
+      if (netTimer % 3 === 0) roomRef.child('hostInput').set(localInput());
+      if (netTimer % 3 === 0) {
         roomRef.child('hostState').set({
           ball: { x: ball.x, y: ball.y, vx: ball.vx, vy: ball.vy, spin: ball.spin },
           score, gameState, pointMsg, pointTimer,
@@ -1922,7 +1922,7 @@ function gameLoop(ts) {
       updateEffects();
     }
     netTimer++;
-    if (roomRef) roomRef.child('guestInput').set(localInput());
+    if (roomRef && netTimer % 3 === 0) roomRef.child('guestInput').set(localInput());
 
     if (remoteHostState) {
       score = remoteHostState.score;
@@ -1937,17 +1937,17 @@ function gameLoop(ts) {
         ball.x = rbx; ball.y = rby;
         ball.vx = remoteHostState.ball.vx;
         ball.vy = remoteHostState.ball.vy;
-      } else if (dist > 5) {
-        ball.x += bdx * 0.15;
-        ball.y += bdy * 0.15;
-        ball.vx += (remoteHostState.ball.vx - ball.vx) * 0.3;
-        ball.vy += (remoteHostState.ball.vy - ball.vy) * 0.3;
+      } else if (dist > 3) {
+        ball.x += bdx * 0.25;
+        ball.y += bdy * 0.25;
+        ball.vx += (remoteHostState.ball.vx - ball.vx) * 0.5;
+        ball.vy += (remoteHostState.ball.vy - ball.vy) * 0.5;
       }
       ball.spin = remoteHostState.ball.spin;
 
       const rpx = remoteHostState.player.x, rpy = remoteHostState.player.y;
-      player.x += (rpx - player.x) * 0.3;
-      player.y += (rpy - player.y) * 0.3;
+      player.x += (rpx - player.x) * 0.5;
+      player.y += (rpy - player.y) * 0.5;
       player.facing = remoteHostState.player.facing;
       player.limbAnim = remoteHostState.player.limbAnim;
       player.onGround = remoteHostState.player.onGround;
