@@ -1778,8 +1778,10 @@ function drawSpecialGauge() {
     ctx.fillText(label + ' ' + cnt + '/' + PLAYER_SPECIAL_COST, x + w / 2, y - 4);
   }
   if (isOnline) {
-    drawBar(player.specialGauge, 30, H - 30, 150, 12, 'P1');
-    drawBar(cpu.specialGauge, W - 180, H - 30, 150, 12, 'P2');
+    const myLabel = (mode === 'host') ? 'HOST' : 'GUEST';
+    const opLabel = (mode === 'host') ? 'GUEST' : 'HOST';
+    drawBar(player.specialGauge, 30, H - 30, 150, 12, myLabel);
+    drawBar(cpu.specialGauge, W - 180, H - 30, 150, 12, opLabel);
   } else {
     drawBar(player.specialGauge, W / 2 - 90, H - 30, 180, 12, 'SPECIAL');
   }
