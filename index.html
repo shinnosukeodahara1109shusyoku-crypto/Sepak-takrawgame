@@ -2089,6 +2089,7 @@ let currentGameStartTime = null;
 let selectedCharacter = null; // { id, img } or null
 let pendingDifficulty = null; // { attackChance, farAttackChance, moveSpeed }
 let pendingGameMode = 'cpu'; // 'cpu' or 'online'
+let pendingOnlineRole = null; // 'host' or 'guest'
 
 // キャラ画像のプリロード（試合中用はplayerImage優先、なければimage）
 const charImages = {};
@@ -2217,6 +2218,7 @@ document.getElementById('createRoomBtn').addEventListener('click', () => {
   });
   roomRef.onDisconnect().remove();
   mode = 'host';
+  pendingOnlineRole = 'host';
 
   roomRef.child('guestJoined').on('value', snap => {
     if (snap.val() === true) {
@@ -2244,6 +2246,7 @@ document.getElementById('joinRoomBtn').addEventListener('click', () => {
     }
     roomRef = ref;
     mode = 'guest';
+    pendingOnlineRole = 'guest';
     roomRef.update({ guestJoined: true });
     pendingGameMode = 'online';
     setupWebRTC();
@@ -2481,6 +2484,7 @@ function startFirebaseFallback() {
 
 function startOnlineGame() {
   document.getElementById('startScreen').style.display = 'none';
+  mode = pendingOnlineRole || mode;
   resetEntities();
   gameState = 'play';
   setTouchControlsVisible(true);
