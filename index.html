@@ -623,7 +623,7 @@ let cpuMoveSpeed = cpuDiff.moveSpeed;
 let cpuSpecialCost = cpuDiff.specialCost;
 let serveSide = 1; // 1: 自分側からスタート, -1: 相手側からスタート（得点ごとに交互）
 let roomRef = null;
-let remoteInput = { left:false, right:false, jump:false, down:false, kick:false, overhead:false };
+let remoteInput = { left:false, right:false, jump:false, down:false, kick:false, overhead:false, special:false };
 let remoteHostState = null;
 let netTimer = 0;
 
@@ -858,7 +858,8 @@ function doOverhead(ent) {
     ent.kickEffect = 14 + KICK_HOLD_FRAMES;
     const maxGauge = ent.isPlayer ? PLAYER_SPECIAL_COST : cpuSpecialCost;
     ent.specialGauge = Math.min(maxGauge, ent.specialGauge + 1);
-    if (ent.isPlayer && ent.specialGauge >= PLAYER_SPECIAL_COST) {
+    const isLocalPlayer = ent.isPlayer || (mode === 'guest' && !ent.isPlayer);
+    if (isLocalPlayer && ent.specialGauge >= PLAYER_SPECIAL_COST) {
       document.getElementById('btnSpecial').classList.add('ready');
     }
     fireballActive = false;
@@ -873,7 +874,8 @@ function doSpecial(ent) {
   if (ent.specialGauge < cost) return;
   if (specialCutInActive) return;
   ent.specialGauge = 0;
-  if (ent.isPlayer) document.getElementById('btnSpecial').classList.remove('ready');
+  const isLocal = ent.isPlayer || (mode === 'guest' && !ent.isPlayer);
+  if (isLocal) document.getElementById('btnSpecial').classList.remove('ready');
   specialCutInActive = true;
   specialCutInTimer = 90;
   specialCutInEntity = ent;
@@ -1757,23 +1759,30 @@ function drawScore() {
 // ── 描画：必殺技ゲージ ──────────────────────────
 function drawSpecialGauge() {
   if (gameState !== 'play') return;
-  const cnt = player.specialGauge;
-  const x = W / 2 - 90, y = H - 30, w = 180, h = 12;
-  ctx.fillStyle = 'rgba(0,0,0,0.4)';
-  ctx.beginPath(); ctx.roundRect(x - 2, y - 2, w + 4, h + 4, 4); ctx.fill();
-  ctx.fillStyle = '#222';
-  ctx.beginPath(); ctx.roundRect(x, y, w, h, 3); ctx.fill();
-  const ratio = cnt / PLAYER_SPECIAL_COST;
-  if (cnt >= PLAYER_SPECIAL_COST) {
-    ctx.fillStyle = '#ffdd33';
-  } else {
-    const gg = ctx.createLinearGradient(x, 0, x + w, 0);
-    gg.addColorStop(0, '#ff8a00'); gg.addColorStop(1, '#ff2a00');
-    ctx.fillStyle = gg;
+  const isOnline = (mode === 'host' || mode === 'guest');
+  function drawBar(cnt, x, y, w, h, label) {
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.beginPath(); ctx.roundRect(x - 2, y - 2, w + 4, h + 4, 4); ctx.fill();
+    ctx.fillStyle = '#222';
+    ctx.beginPath(); ctx.roundRect(x, y, w, h, 3); ctx.fill();
+    const ratio = Math.min(cnt / PLAYER_SPECIAL_COST, 1);
+    if (cnt >= PLAYER_SPECIAL_COST) {
+      ctx.fillStyle = '#ffdd33';
+    } else {
+      const gg = ctx.createLinearGradient(x, 0, x + w, 0);
+      gg.addColorStop(0, '#ff8a00'); gg.addColorStop(1, '#ff2a00');
+      ctx.fillStyle = gg;
+    }
+    ctx.beginPath(); ctx.roundRect(x, y, w * ratio, h, 3); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = '10px Arial'; ctx.textAlign = 'center';
+    ctx.fillText(label + ' ' + cnt + '/' + PLAYER_SPECIAL_COST, x + w / 2, y - 4);
   }
-  ctx.beginPath(); ctx.roundRect(x, y, w * ratio, h, 3); ctx.fill();
-  ctx.fillStyle = '#fff'; ctx.font = '10px Arial'; ctx.textAlign = 'center';
-  ctx.fillText('SPECIAL ' + cnt + '/' + PLAYER_SPECIAL_COST, W / 2, y - 4);
+  if (isOnline) {
+    drawBar(player.specialGauge, 30, H - 30, 150, 12, 'P1');
+    drawBar(cpu.specialGauge, W - 180, H - 30, 150, 12, 'P2');
+  } else {
+    drawBar(player.specialGauge, W / 2 - 90, H - 30, 180, 12, 'SPECIAL');
+  }
 }
 
 // ── 描画：カットイン ────────────────────────────
