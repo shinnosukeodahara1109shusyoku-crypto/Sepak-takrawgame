@@ -66,30 +66,90 @@
   #startScreen h1#titleText { opacity: 0; transition: opacity 2.2s ease-in; }
   #startScreen h1#titleText.title-show { opacity: 1; }
   #startScreen p { font-size: 16px; color: #aaf; margin: 4px 0; }
-  #startScreen .controls { margin: 20px 0; background: rgba(0,0,0,0.2); padding: 16px 28px; border-radius: 10px; backdrop-filter: blur(4px); }
-  #startScreen .controls h3 { color: #ff9; margin-bottom: 8px; }
+  #startScreen .controls { margin: 16px 0; background: rgba(0,0,0,0.45); padding: 14px 24px; border-radius: 12px; backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.08); max-width: 340px; }
+  #startScreen .controls h3 { color: #ffd700; margin-bottom: 6px; font-size: 15px; }
+  #startScreen .controls p { font-size: 13px; color: #ccd; margin: 2px 0; }
   #startBtn { margin-top: 24px; padding: 12px 40px; font-size: 20px; background: #f60; color: #fff; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 0 20px #f60; transition: transform 0.1s; }
   #startBtn:hover { transform: scale(1.05); }
 
   #modeSelect, #onlineMenu { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 16px; }
-  .mode-btn { padding: 12px 40px; font-size: 18px; background: #46c; color: #fff; border: none; border-radius: 8px; cursor: pointer; transition: transform 0.1s; }
-  .mode-btn:hover { transform: scale(1.05); }
-  #onlineMenu { background: rgba(255,255,255,0.05); padding: 16px 24px; border-radius: 10px; min-width: 260px; }
-  #onlineMenu input { font-size: 20px; text-align: center; letter-spacing: 4px; width: 110px; padding: 6px; border-radius: 6px; border: none; }
-  #onlineMenu .row { display: flex; gap: 8px; align-items: center; justify-content: center; }
-  #roomCodeDisplay { font-size: 24px; color: #ff0; letter-spacing: 4px; margin-top: 6px; }
-  #onlineStatus { color: #afa; font-size: 14px; min-height: 20px; margin-top: 8px; text-align: center; }
-  #backBtn { margin-top: 8px; padding: 6px 20px; background: #555; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+  .mode-btn {
+    padding: 14px 44px; font-size: 18px; font-weight: bold; color: #fff;
+    border: none; border-radius: 12px; cursor: pointer;
+    background: linear-gradient(180deg, #5a8fd8 0%, #3a6bc5 50%, #2d55a0 100%);
+    box-shadow: 0 4px 0 #1e3a6e, 0 6px 12px rgba(0,0,0,0.4);
+    transition: transform 0.12s cubic-bezier(.4,0,.2,1), box-shadow 0.12s, filter 0.12s;
+    position: relative; overflow: hidden;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    letter-spacing: 1px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mode-btn::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0) 50%);
+    border-radius: 12px; pointer-events: none;
+  }
+  .mode-btn::after {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.5) 0%, transparent 70%);
+    opacity: 0; border-radius: 12px; pointer-events: none;
+    transition: opacity 0.15s;
+  }
+  .mode-btn.btn-pressing { transform: scale(0.94) translateY(2px); box-shadow: 0 2px 0 #1e3a6e, 0 2px 6px rgba(0,0,0,0.3); filter: brightness(0.9); }
+  .mode-btn.btn-pressing::after { opacity: 1; }
+  .mode-btn.btn-flash::after { opacity: 1; }
+
+  .mode-btn.btn-online {
+    background: linear-gradient(180deg, #ff9933 0%, #ff6600 50%, #cc4400 100%);
+    box-shadow: 0 4px 0 #993300, 0 6px 16px rgba(255,100,0,0.5), 0 0 24px rgba(255,100,0,0.3);
+    font-size: 20px; padding: 16px 48px;
+    animation: onlineBtnGlow 2s ease-in-out infinite alternate;
+  }
+  .mode-btn.btn-online::before {
+    background: linear-gradient(180deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 50%);
+  }
+  .mode-btn.btn-online.btn-pressing { box-shadow: 0 2px 0 #993300, 0 2px 6px rgba(255,100,0,0.3); animation: none; }
+  @keyframes onlineBtnGlow {
+    from { box-shadow: 0 4px 0 #993300, 0 6px 16px rgba(255,100,0,0.5), 0 0 24px rgba(255,100,0,0.3); }
+    to { box-shadow: 0 4px 0 #993300, 0 6px 20px rgba(255,100,0,0.7), 0 0 40px rgba(255,200,0,0.4); }
+  }
+
+  .mode-btn.btn-danger {
+    background: linear-gradient(180deg, #e85d5d 0%, #d43c3c 50%, #a82e2e 100%);
+    box-shadow: 0 4px 0 #7a1f1f, 0 6px 12px rgba(0,0,0,0.4);
+  }
+  .mode-btn.btn-danger.btn-pressing { box-shadow: 0 2px 0 #7a1f1f, 0 2px 6px rgba(0,0,0,0.3); }
+
+  .mode-btn.btn-secondary {
+    background: linear-gradient(180deg, #6b6b7b 0%, #4e4e5e 50%, #3a3a4a 100%);
+    box-shadow: 0 4px 0 #2a2a36, 0 6px 12px rgba(0,0,0,0.4);
+    padding: 10px 32px; font-size: 15px;
+  }
+  .mode-btn.btn-secondary.btn-pressing { box-shadow: 0 2px 0 #2a2a36, 0 2px 6px rgba(0,0,0,0.3); }
+
+  .mode-btn.btn-green {
+    background: linear-gradient(180deg, #5dd87a 0%, #3cb55a 50%, #2d8f45 100%);
+    box-shadow: 0 4px 0 #1e6e33, 0 6px 12px rgba(0,0,0,0.4);
+  }
+  .mode-btn.btn-green.btn-pressing { box-shadow: 0 2px 0 #1e6e33, 0 2px 6px rgba(0,0,0,0.3); }
+  #onlineMenu { background: rgba(0,0,0,0.5); padding: 20px 28px; border-radius: 16px; min-width: 280px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(8px); }
+  #onlineMenu input { font-size: 22px; text-align: center; letter-spacing: 6px; width: 120px; padding: 8px 12px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.5); color: #fff; font-weight: bold; }
+  #onlineMenu input::placeholder { color: rgba(255,255,255,0.3); letter-spacing: 2px; }
+  #onlineMenu .row { display: flex; gap: 10px; align-items: center; justify-content: center; }
+  #roomCodeDisplay { font-size: 26px; color: #ff0; letter-spacing: 6px; margin-top: 8px; text-shadow: 0 0 12px rgba(255,255,0,0.5); }
+  #onlineStatus { color: #afa; font-size: 14px; min-height: 20px; margin-top: 10px; text-align: center; }
+  #backBtn { margin-top: 8px; }
 
   /* ── ガチャ ── */
   #gachaScreen, #collectionScreen, #difficultyScreen, #characterSelectScreen {
     position: fixed; inset: 0; z-index: 300;
-    background: rgba(0,0,5,0.9);
+    background: rgba(0,0,5,0.92);
     display: none; flex-direction: column; align-items: center; justify-content: center;
-    color: #fff; gap: 18px; padding: 16px; text-align: center;
+    color: #fff; gap: 14px; padding: 16px; text-align: center;
     overflow-y: auto;
+    backdrop-filter: blur(4px);
   }
-  .gacha-title { font-size: 28px; color: #ff0; text-shadow: 0 0 12px #f80, 0 0 24px #f60; }
+  .gacha-title { font-size: 26px; color: #ffd700; text-shadow: 0 0 12px #f80, 0 0 24px #f60; letter-spacing: 2px; font-weight: bold; }
 
   .gacha-machine { position: relative; width: clamp(170px, 50vw, 240px); aspect-ratio: 220 / 300; }
   .gacha-lid {
@@ -200,7 +260,11 @@
     border: 2px solid #ff0;
   }
   .collection-name { font-size: 11px; color: #ff0; }
-  .collection-item.clickable { cursor: pointer; }
+  .collection-item.clickable {
+    cursor: pointer; transition: transform 0.12s, box-shadow 0.12s;
+    border: 1px solid rgba(255,255,0,0.15);
+  }
+  .collection-item.clickable:active { transform: scale(0.93); box-shadow: 0 0 12px rgba(255,200,0,0.4); }
 
   #loginRow { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 10px; }
   #loginStatus { font-size: 12px; color: #afa; min-height: 16px; }
@@ -243,47 +307,47 @@
   <p style="color:#8f8">先に5点取ったほうが勝ち！</p>
 
   <div id="modeSelect">
-    <button class="mode-btn" id="cpuBtn">CPU対戦</button>
-    <button class="mode-btn" id="onlineModeBtn">通信対戦</button>
-    <button class="mode-btn" id="collectionBtn">コレクション</button>
+    <button class="mode-btn" id="cpuBtn">⚔ CPU対戦</button>
+    <button class="mode-btn btn-online" id="onlineModeBtn">🌐 通信対戦</button>
+    <button class="mode-btn btn-green" id="collectionBtn">📦 コレクション</button>
   </div>
 
   <div id="loginRow">
-    <button class="mode-btn" id="googleLoginBtn">Googleでログイン</button>
+    <button class="mode-btn btn-secondary" id="googleLoginBtn">Googleでログイン</button>
     <div id="loginStatus"></div>
   </div>
 
   <div id="onlineMenu" style="display:none;">
-    <button class="mode-btn" id="createRoomBtn">部屋を作る（4桁ID発行）</button>
+    <button class="mode-btn btn-online" id="createRoomBtn">🏠 部屋を作る</button>
     <div id="roomCodeDisplay"></div>
     <div class="row">
       <input id="joinRoomInput" maxlength="4" inputmode="numeric" placeholder="4桁ID">
-      <button class="mode-btn" id="joinRoomBtn">部屋に入る</button>
+      <button class="mode-btn btn-green" id="joinRoomBtn">参加</button>
     </div>
     <div id="onlineStatus"></div>
-    <button id="backBtn">戻る</button>
+    <button class="mode-btn btn-secondary" id="backBtn">← 戻る</button>
   </div>
 </div>
 
 <div id="difficultyScreen">
   <h2 class="gacha-title">難易度を選択</h2>
-  <button class="mode-btn" id="diffAmateurBtn">アマチュア</button>
-  <button class="mode-btn" id="diffProBtn">プロフェッショナル</button>
-  <button class="mode-btn" id="diffLegendBtn">レジェンド</button>
-  <button class="mode-btn" id="diffBackBtn">戻る</button>
+  <button class="mode-btn btn-green" id="diffAmateurBtn">🟢 アマチュア</button>
+  <button class="mode-btn" id="diffProBtn">🟡 プロフェッショナル</button>
+  <button class="mode-btn btn-danger" id="diffLegendBtn">🔴 レジェンド</button>
+  <button class="mode-btn btn-secondary" id="diffBackBtn">← 戻る</button>
 </div>
 
 <!-- ── キャラクター選択 ── -->
 <div id="characterSelectScreen">
   <h2 class="gacha-title">キャラクターを選択</h2>
   <div class="collection-grid" id="characterSelectGrid"></div>
-  <button class="mode-btn" id="charSelectBackBtn">戻る</button>
+  <button class="mode-btn btn-secondary" id="charSelectBackBtn">← 戻る</button>
 </div>
 
 <!-- ── 勝利ガチャ ── -->
 <div id="gachaScreen">
   <h2 class="gacha-title">勝利ボーナスガチャ！</h2>
-  <button class="mode-btn" id="gachaCloseBtn" style="display:none;">タイトルへ戻る</button>
+  <button class="mode-btn btn-secondary" id="gachaCloseBtn" style="display:none;">タイトルへ戻る</button>
   <div class="gacha-machine">
     <div class="gacha-lid"></div>
     <div class="gacha-dome">
@@ -308,7 +372,7 @@
   <div class="gacha-output" id="gachaOutput"></div>
   <div class="gacha-result-card" id="gachaResultCard"></div>
   <div class="gacha-btn-row">
-    <button class="mode-btn" id="gachaPullBtn">ハンドルを回す！</button>
+    <button class="mode-btn btn-online" id="gachaPullBtn">🎰 ハンドルを回す！</button>
   </div>
 </div>
 
@@ -316,7 +380,7 @@
 <div id="collectionScreen">
   <h2 class="gacha-title">コレクション</h2>
   <div class="collection-grid" id="collectionGrid"></div>
-  <button class="mode-btn" id="collectionBackBtn">戻る</button>
+  <button class="mode-btn btn-secondary" id="collectionBackBtn">← 戻る</button>
 </div>
 
 <!-- ── コレクション詳細 ── -->
@@ -423,6 +487,39 @@ function playSynthesizedSound(type) {
   }
 }
 
+
+// ── ボタン押下エフェクト ──────────────────────────
+function playBtnSound() {
+  if (!audioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    audioCtx = new AC();
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.06);
+  gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.08);
+}
+
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  const press = () => { btn.classList.add('btn-pressing'); };
+  const release = () => { btn.classList.remove('btn-pressing'); };
+  btn.addEventListener('pointerdown', e => {
+    press();
+    playBtnSound();
+  });
+  btn.addEventListener('pointerup', release);
+  btn.addEventListener('pointerleave', release);
+  btn.addEventListener('pointercancel', release);
+});
 
 // ── 定数 ──────────────────────────────────────────
 const GRAVITY = 0.45;
@@ -2075,14 +2172,23 @@ function gameLoop(ts) {
 }
 
 // ── スタート（CPU対戦：難易度選択） ───────────────
-document.getElementById('cpuBtn').addEventListener('click', () => {
-  document.getElementById('startScreen').style.display = 'none';
-  document.getElementById('difficultyScreen').style.display = 'flex';
+function btnTransition(btn, fn) {
+  btn.classList.add('btn-pressing');
+  setTimeout(() => { btn.classList.remove('btn-pressing'); fn(); }, 140);
+}
+
+document.getElementById('cpuBtn').addEventListener('click', function() {
+  btnTransition(this, () => {
+    document.getElementById('startScreen').style.display = 'none';
+    document.getElementById('difficultyScreen').style.display = 'flex';
+  });
 });
 
-document.getElementById('diffBackBtn').addEventListener('click', () => {
-  document.getElementById('difficultyScreen').style.display = 'none';
-  document.getElementById('startScreen').style.display = 'flex';
+document.getElementById('diffBackBtn').addEventListener('click', function() {
+  btnTransition(this, () => {
+    document.getElementById('difficultyScreen').style.display = 'none';
+    document.getElementById('startScreen').style.display = 'flex';
+  });
 });
 
 let currentGameLogKey = null;
@@ -2187,18 +2293,20 @@ document.getElementById('charSelectBackBtn').addEventListener('click', () => {
   }
 });
 
-document.getElementById('diffAmateurBtn').addEventListener('click', () => startCpuGame('amateur'));
-document.getElementById('diffProBtn').addEventListener('click', () => startCpuGame('professional'));
-document.getElementById('diffLegendBtn').addEventListener('click', () => startCpuGame('legend'));
+document.getElementById('diffAmateurBtn').addEventListener('click', function() { btnTransition(this, () => startCpuGame('amateur')); });
+document.getElementById('diffProBtn').addEventListener('click', function() { btnTransition(this, () => startCpuGame('professional')); });
+document.getElementById('diffLegendBtn').addEventListener('click', function() { btnTransition(this, () => startCpuGame('legend')); });
 
 // ── 通信対戦メニュー ──────────────────────────────
-document.getElementById('onlineModeBtn').addEventListener('click', () => {
+document.getElementById('onlineModeBtn').addEventListener('click', function() {
   if (!db) {
     alert('通信対戦はFirebaseの設定が必要です。');
     return;
   }
-  document.getElementById('modeSelect').style.display = 'none';
-  document.getElementById('onlineMenu').style.display = 'flex';
+  btnTransition(this, () => {
+    document.getElementById('modeSelect').style.display = 'none';
+    document.getElementById('onlineMenu').style.display = 'flex';
+  });
 });
 
 document.getElementById('backBtn').addEventListener('click', () => {
@@ -2644,9 +2752,11 @@ document.getElementById('collectionDetail').addEventListener('click', () => {
   document.getElementById('collectionDetail').style.display = 'none';
 });
 
-document.getElementById('collectionBtn').addEventListener('click', () => {
-  renderCollection();
-  document.getElementById('collectionScreen').style.display = 'flex';
+document.getElementById('collectionBtn').addEventListener('click', function() {
+  btnTransition(this, () => {
+    renderCollection();
+    document.getElementById('collectionScreen').style.display = 'flex';
+  });
 });
 
 document.getElementById('collectionBackBtn').addEventListener('click', () => {
