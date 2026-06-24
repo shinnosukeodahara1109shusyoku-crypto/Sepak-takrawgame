@@ -582,6 +582,7 @@ const CAPSULE_TYPES = [
     quote: '＜一言＞野球とセパの二刀流なんてこいつとあいつくらい',
     image: 'assets/tsubo_kura_card.png',
     playerImage: 'assets/tsubo_kura.png',
+    skin: { jersey: '#2a7aee', jerseyDark: '#1a5aaa', jerseyLight: '#5a9af4', shorts: '#16306b', shortsDark: '#0e2050', skin: '#f4c49a', skinDark: '#d4a478', hair: '#3a2a1a', sockBand: '#1a5aaa' },
   },
   {
     id: 'kato_k', color: '#3498db', weight: 2,
@@ -589,6 +590,7 @@ const CAPSULE_TYPES = [
     quote: '＜一言＞なんか逆さまになりたくなっちゃうんだよな～',
     image: 'assets/kato_k.png',
     playerImage: 'assets/kato_k_player.png',
+    skin: { jersey: '#e63946', jerseyDark: '#b5202e', jerseyLight: '#ff6b6b', shorts: '#1d3557', shortsDark: '#0d1f3c', skin: '#f4c49a', skinDark: '#d4a478', hair: '#1a1a1a', sockBand: '#e63946' },
   },
   {
     id: 'yamagai_kun', color: '#2ecc71', weight: 4,
@@ -596,6 +598,7 @@ const CAPSULE_TYPES = [
     quote: '＜一言＞いつもニコニコしている聖人トサーである。彼の怒った顔も見てみたいものである。',
     image: 'assets/yamagai_kun_card.png',
     playerImage: 'assets/yamagai_kun.png',
+    skin: { jersey: '#27ae60', jerseyDark: '#1e8449', jerseyLight: '#52d68a', shorts: '#145a32', shortsDark: '#0e3d22', skin: '#f4c49a', skinDark: '#d4a478', hair: '#2c1810', sockBand: '#27ae60' },
   },
   {
     id: 'ito_yuhi', color: '#e74c3c', weight: 2,
@@ -603,30 +606,35 @@ const CAPSULE_TYPES = [
     quote: '＜一言＞誰もが羨む技術の高さ。チャンボミスってほしい',
     image: 'assets/ito_yuhi.png',
     playerImage: 'assets/ito_yuhi_player.png',
+    skin: { jersey: '#f39c12', jerseyDark: '#d68910', jerseyLight: '#f7c948', shorts: '#7d3c00', shortsDark: '#5a2d00', skin: '#e8b88a', skinDark: '#c99a6c', hair: '#1a1408', sockBand: '#f39c12' },
   },
   {
     id: 'kakuzatou_yuuki', color: '#ff69b4', weight: 3,
     name: '角砂糖ユウキ',
     quote: '＜一言＞最近家族が増えてそう。おめでとうございます',
     image: 'assets/b223ba57-4e58-4ea1-b012-d470db359132.png',
+    skin: { jersey: '#8e44ad', jerseyDark: '#6c3483', jerseyLight: '#af7ac5', shorts: '#4a235a', shortsDark: '#311747', skin: '#f4c49a', skinDark: '#d4a478', hair: '#2c1810', sockBand: '#8e44ad' },
   },
   {
     id: 'inazawa_ryou', color: '#708090', weight: 3,
     name: '稲沢リヨウ',
     quote: '＜一言＞レシーブの安心感半端ないサーバー、笑わない男',
     image: 'assets/8c1548e1-1b07-4c63-ba7c-78db3911bcc1.png',
+    skin: { jersey: '#2c3e50', jerseyDark: '#1a252f', jerseyLight: '#4a6a82', shorts: '#1c2833', shortsDark: '#0e1720', skin: '#f0c090', skinDark: '#d0a070', hair: '#0a0a0a', sockBand: '#2c3e50' },
   },
   {
     id: 'as_banana', color: '#ffe135', weight: 1,
     name: 'A.S.BANANA',
     quote: '＜一言＞A.S.BANANA所属のアタッカーとサーバー、圧倒的安心感のあるベテラン勢',
     image: 'assets/3964d0ae-ff92-4c72-bd62-54c0837dd179.png',
+    skin: { jersey: '#f1c40f', jerseyDark: '#d4ac0d', jerseyLight: '#f7dc6f', shorts: '#1a1a1a', shortsDark: '#0a0a0a', skin: '#f4c49a', skinDark: '#d4a478', hair: '#3a2a1a', sockBand: '#f1c40f' },
   },
   {
     id: 'umeoka_sou', color: '#9b59b6', weight: 3,
     name: '梅岡漱',
     quote: '＜一言＞アタック半端ない足元練習しろ',
     image: 'assets/11C86C61-1F64-4D32-9539-3A016C57E4D0.jpg',
+    skin: { jersey: '#c0392b', jerseyDark: '#96281b', jerseyLight: '#e74c3c', shorts: '#4a0e0e', shortsDark: '#2c0808', skin: '#f4c49a', skinDark: '#d4a478', hair: '#1a1208', sockBand: '#c0392b' },
   },
 ];
 let gachaShown = false;
@@ -1296,17 +1304,18 @@ function generatePartCanvas(w, h, drawFn) {
   return c;
 }
 
-function generatePlayerParts(isPlayer) {
-  const jersey     = isPlayer ? '#2a7aee' : '#e0451f';
-  const jerseyDark = isPlayer ? '#1a5aaa' : '#a8330f';
-  const jerseyLight= isPlayer ? '#5a9af4' : '#f47040';
-  const shorts     = isPlayer ? '#16306b' : '#5e1c08';
-  const shortsDark = isPlayer ? '#0e2050' : '#401005';
-  const skin       = '#f4c49a';
-  const skinDark   = '#d4a478';
-  const hair       = isPlayer ? '#3a2a1a' : '#241712';
+function generatePlayerParts(isPlayer, skinCfg) {
+  const s = skinCfg || {};
+  const jersey     = s.jersey || (isPlayer ? '#2a7aee' : '#e0451f');
+  const jerseyDark = s.jerseyDark || (isPlayer ? '#1a5aaa' : '#a8330f');
+  const jerseyLight= s.jerseyLight || (isPlayer ? '#5a9af4' : '#f47040');
+  const shorts     = s.shorts || (isPlayer ? '#16306b' : '#5e1c08');
+  const shortsDark = s.shortsDark || (isPlayer ? '#0e2050' : '#401005');
+  const skin       = s.skin || '#f4c49a';
+  const skinDark   = s.skinDark || '#d4a478';
+  const hair       = s.hair || (isPlayer ? '#3a2a1a' : '#241712');
   const sock       = '#ffffff';
-  const sockBand   = isPlayer ? '#1a5aaa' : '#a8330f';
+  const sockBand   = s.sockBand || (isPlayer ? '#1a5aaa' : '#a8330f');
   const shoe       = '#202020';
   const parts = {};
 
@@ -1458,14 +1467,48 @@ function generatePlayerParts(isPlayer) {
     pc.beginPath(); pc.roundRect(1, 0, 4, 5, 1.5); pc.fill();
   });
 
+  parts.headRimColor = skinDark;
   return parts;
 }
 
 // パーツキャッシュ
 let _playerParts = null, _cpuParts = null;
+let _playerSkinId = null;
 function getPlayerParts(isPlayer) {
-  if (isPlayer) { if (!_playerParts) _playerParts = generatePlayerParts(true); return _playerParts; }
-  else { if (!_cpuParts) _cpuParts = generatePlayerParts(false); return _cpuParts; }
+  if (isPlayer) {
+    const skinId = selectedCharacter ? selectedCharacter.id : null;
+    if (!_playerParts || _playerSkinId !== skinId) {
+      const charType = skinId ? CAPSULE_TYPES.find(t => t.id === skinId) : null;
+      _playerParts = generatePlayerParts(true, charType ? charType.skin : null);
+      _playerSkinId = skinId;
+      _playerFaceCanvas = null;
+    }
+    return _playerParts;
+  } else {
+    if (!_cpuParts) _cpuParts = generatePlayerParts(false);
+    return _cpuParts;
+  }
+}
+
+let _playerFaceCanvas = null;
+function getPlayerFaceCanvas() {
+  if (_playerFaceCanvas) return _playerFaceCanvas;
+  if (!selectedCharacter || !selectedCharacter.img || !selectedCharacter.img.complete) return null;
+  const size = 96;
+  const c = document.createElement('canvas');
+  c.width = size; c.height = size;
+  const fc = c.getContext('2d');
+  fc.beginPath();
+  fc.arc(size/2, size/2, size/2, 0, Math.PI * 2);
+  fc.closePath();
+  fc.clip();
+  const img = selectedCharacter.img;
+  const aspect = img.naturalWidth / img.naturalHeight;
+  let sw = size, sh = size;
+  if (aspect > 1) sh = size / aspect; else sw = size * aspect;
+  fc.drawImage(img, (size - sw) / 2, (size - sh) / 2, sw, sh);
+  _playerFaceCanvas = c;
+  return c;
 }
 
 // パーツ画像版の2関節リム描画
@@ -1555,34 +1598,6 @@ function drawPlayer(ent) {
   const isOverhead = ent.overheadState === 2;
   const scale = ent.facing;
   ctx.scale(scale * 1.3, 1.3); // キャラクターの大きさ
-
-  // キャラクター画像モード（プレイヤーのみ）
-  if (selectedCharacter && ent.isPlayer && selectedCharacter.img && selectedCharacter.img.complete) {
-    // 影
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 18, 5, 0, 0, Math.PI * 2);
-    ctx.fill();
-    const kickBase = isOverhead ? 14 : 10;
-    const kickPow = ent.kickEffect > 0 ? Math.min(1, ent.kickEffect / kickBase) : 0;
-    ctx.save();
-    if (isOverhead) {
-      ctx.translate(0, -PLAYER_H);
-      ctx.rotate(Math.PI);
-    } else if (kickPow > 0) {
-      ctx.rotate(-0.35 * kickPow);
-    }
-    const charId = selectedCharacter.id;
-    const sizeScale = (charId === 'kato_k' || charId === 'ito_yuhi') ? 0.5 : 1;
-    const widthScale = (charId === 'tsubo_kura') ? 0.7 : 1;
-    const imgH = PLAYER_H * 2.5 * sizeScale;
-    const imgW = imgH * (selectedCharacter.img.naturalWidth / selectedCharacter.img.naturalHeight) * widthScale;
-    const groundOffset = imgH * 0.23;
-    ctx.drawImage(selectedCharacter.img, -imgW / 2, -imgH + groundOffset, imgW, imgH);
-    ctx.restore();
-    ctx.restore();
-    return;
-  }
 
   // パーツ画像取得
   const P = getPlayerParts(ent.isPlayer);
@@ -1750,7 +1765,23 @@ function drawPlayer(ent) {
     ctx.translate(0, -neckY);
   }
   // 頭パーツ画像
-  ctx.drawImage(P.head, -12, headCenterY - 14, 24, 26);
+  const faceC = ent.isPlayer ? getPlayerFaceCanvas() : null;
+  if (faceC) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(0, headCenterY, 11, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+    ctx.drawImage(faceC, -12, headCenterY - 13, 24, 24);
+    ctx.restore();
+    ctx.strokeStyle = P.headRimColor || '#d4a478';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(0, headCenterY, 11, 0, Math.PI * 2);
+    ctx.stroke();
+  } else {
+    ctx.drawImage(P.head, -12, headCenterY - 14, 24, 26);
+  }
 
   ctx.restore(); // 頭ボーン
   ctx.restore(); // 上半身ボーン
@@ -2248,6 +2279,7 @@ function renderCharacterSelect() {
 
 function confirmCharacterAndStart(charId) {
   selectedCharacter = charId ? { id: charId, img: charImages[charId] } : null;
+  _playerFaceCanvas = null;
   document.getElementById('characterSelectScreen').style.display = 'none';
 
   if (pendingGameMode === 'online') {
