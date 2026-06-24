@@ -620,7 +620,7 @@ const CAPSULE_TYPES = [
     name: '稲沢リヨウ',
     quote: '＜一言＞レシーブの安心感半端ないサーバー、笑わない男',
     image: 'assets/8c1548e1-1b07-4c63-ba7c-78db3911bcc1.png',
-    skin: { jersey: '#e8e8e8', jerseyDark: '#cccccc', jerseyLight: '#ffffff', shorts: '#1a1a1a', shortsDark: '#0a0a0a', skin: '#f0c090', skinDark: '#d0a070', hair: '#0a0a0a', sockBand: '#1a1a1a', pattern: 'stripes', stripeColor: '#1a1a1a', number: '#333' },
+    skin: { jersey: '#1a1a1a', jerseyDark: '#0a0a0a', jerseyLight: '#333333', shorts: '#1a1a1a', shortsDark: '#0a0a0a', skin: '#f0c090', skinDark: '#d0a070', hair: '#0a0a0a', sockBand: '#1a1a1a', pattern: 'stripes', stripeColor: '#e8e8e8' },
   },
   {
     id: 'as_banana', color: '#ffe135', weight: 1,
@@ -1392,7 +1392,11 @@ function generatePlayerParts(isPlayer, skinCfg) {
     pc.fillStyle = collarColor || jerseyDark;
     pc.beginPath(); pc.moveTo(10, 0); pc.lineTo(14, 5); pc.lineTo(18, 0); pc.closePath(); pc.fill();
     // 肩ライン
-    pc.fillStyle = jerseyLight; pc.fillRect(1, 0, 26, 2);
+    if (collarColor) {
+      pc.fillStyle = collarColor; pc.fillRect(1, 0, 26, 3);
+    } else {
+      pc.fillStyle = jerseyLight; pc.fillRect(1, 0, 26, 2);
+    }
     // 脇シャドウ
     pc.fillStyle = 'rgba(0,0,0,0.15)';
     pc.fillRect(1, 3, 4, 12); pc.fillRect(23, 3, 4, 12);
