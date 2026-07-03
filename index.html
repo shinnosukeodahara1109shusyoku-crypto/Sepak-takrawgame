@@ -1641,7 +1641,8 @@ function drawPlayer(ent) {
     if (silImg && silImg.complete && silImg.naturalWidth > 0) {
       const sh = 204;
       const sw = sh * (silImg.naturalWidth / silImg.naturalHeight);
-      ctx.scale(ent.facing, 1);
+      const flip = ent.isPlayer ? ent.facing : -ent.facing;
+      ctx.scale(flip, 1);
       ctx.drawImage(silImg, -sw / 2, -sh + 10, sw, sh);
       ctx.restore();
       return;
