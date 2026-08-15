@@ -598,6 +598,7 @@ const CAPSULE_TYPES = [
     quote: '＜一言＞いつもニコニコしている聖人トサーである。彼の怒った顔も見てみたいものである。',
     image: 'assets/yamagai_kun_card.png',
     playerImage: 'assets/yamagai_kun.png',
+    faceImage: 'assets/yamagai_kun_face.png',
     skin: { jersey: '#808080', jerseyDark: '#606060', jerseyLight: '#a0a0a0', shorts: '#1a1a1a', shortsDark: '#0a0a0a', skin: '#f4c49a', skinDark: '#d4a478', hair: '#2c1810', sockBand: '#808080', number: '#fff' },
   },
   {
@@ -606,6 +607,7 @@ const CAPSULE_TYPES = [
     quote: '＜一言＞誰もが羨む技術の高さ。チャンボミスってほしい',
     image: 'assets/ito_yuhi.png',
     playerImage: 'assets/ito_yuhi_player.png',
+    faceImage: 'assets/ito_yuhi_face.png',
     skin: { jersey: '#2a6ad8', jerseyDark: '#1c4f9e', jerseyLight: '#4a8af0', shorts: '#1c4f9e', shortsDark: '#143a78', skin: '#e8b88a', skinDark: '#c99a6c', hair: '#1a1408', sockBand: '#2a6ad8' },
   },
   {
@@ -613,6 +615,7 @@ const CAPSULE_TYPES = [
     name: '角砂糖ユウキ',
     quote: '＜一言＞最近家族が増えてそう。おめでとうございます',
     image: 'assets/b223ba57-4e58-4ea1-b012-d470db359132.png',
+    faceImage: 'assets/kakuzatou_yuuki_face.jpeg',
     skin: { jersey: '#1a2a50', jerseyDark: '#0e1a38', jerseyLight: '#2a3a66', shorts: '#1a2a50', shortsDark: '#0e1a38', skin: '#f4c49a', skinDark: '#d4a478', hair: '#2c1810', sockBand: '#1a2a50', collarColor: '#ff8c00' },
   },
   {
@@ -620,6 +623,7 @@ const CAPSULE_TYPES = [
     name: '稲沢リヨウ',
     quote: '＜一言＞レシーブの安心感半端ないサーバー、笑わない男',
     image: 'assets/8c1548e1-1b07-4c63-ba7c-78db3911bcc1.png',
+    faceImage: 'assets/inazawa_ryou_face.png',
     skin: { jersey: '#1a1a1a', jerseyDark: '#0a0a0a', jerseyLight: '#333333', shorts: '#1a1a1a', shortsDark: '#0a0a0a', skin: '#f0c090', skinDark: '#d0a070', hair: '#0a0a0a', sockBand: '#1a1a1a', pattern: 'stripes', stripeColor: '#e8e8e8' },
   },
   {
@@ -627,6 +631,7 @@ const CAPSULE_TYPES = [
     name: 'A.S.BANANA',
     quote: '＜一言＞A.S.BANANA所属のアタッカーとサーバー、圧倒的安心感のあるベテラン勢',
     image: 'assets/3964d0ae-ff92-4c72-bd62-54c0837dd179.png',
+    faceImage: 'assets/as_banana_face.jpg',
     skin: { jersey: '#2a7aee', jerseyDark: '#1a5aaa', jerseyLight: '#5a9af4', shorts: '#16306b', shortsDark: '#0e2050', skin: '#f4c49a', skinDark: '#d4a478', hair: '#3a2a1a', sockBand: '#1a5aaa', pattern: 'sidelines', lineColor: '#66ccff' },
   },
   {
@@ -634,6 +639,7 @@ const CAPSULE_TYPES = [
     name: '梅岡漱',
     quote: '＜一言＞アタック半端ない足元練習しろ',
     image: 'assets/11C86C61-1F64-4D32-9539-3A016C57E4D0.jpg',
+    faceImage: 'assets/umeoka_sou_face.png',
     skin: { jersey: '#2a6ad8', jerseyDark: '#1c4f9e', jerseyLight: '#4a8af0', shorts: '#e8e8e8', shortsDark: '#cccccc', skin: '#f4c49a', skinDark: '#d4a478', hair: '#1a1208', sockBand: '#2a6ad8', pattern: 'rightline', lineColor: '#e63946' },
   },
 ];
@@ -1546,7 +1552,11 @@ function getPlayerParts(isPlayer) {
 let _playerFaceCanvas = null;
 function getPlayerFaceCanvas() {
   if (_playerFaceCanvas) return _playerFaceCanvas;
-  if (!selectedCharacter || !selectedCharacter.img || !selectedCharacter.img.complete) return null;
+  if (!selectedCharacter) return null;
+  // 専用の顔画像があればそれを優先、なければ従来のカード画像
+  const faceImg = charFaceImages[selectedCharacter.id];
+  const img = (faceImg && faceImg.complete && faceImg.naturalWidth > 0) ? faceImg : selectedCharacter.img;
+  if (!img || !img.complete || !img.naturalWidth) return null;
   const size = 96;
   const c = document.createElement('canvas');
   c.width = size; c.height = size;
@@ -1555,11 +1565,11 @@ function getPlayerFaceCanvas() {
   fc.arc(size/2, size/2, size/2, 0, Math.PI * 2);
   fc.closePath();
   fc.clip();
-  const img = selectedCharacter.img;
-  const aspect = img.naturalWidth / img.naturalHeight;
-  let sw = size, sh = size;
-  if (aspect > 1) sh = size / aspect; else sw = size * aspect;
-  fc.drawImage(img, (size - sw) / 2, (size - sh) / 2, sw, sh);
+  // 中央を正方形にクロップ（アスペクト比を保ちつつ丸に収まるよう cover）
+  const iw = img.naturalWidth, ih = img.naturalHeight;
+  const side = Math.min(iw, ih);
+  const sx = (iw - side) / 2, sy = (ih - side) / 2;
+  fc.drawImage(img, sx, sy, side, side, 0, 0, size, size);
   _playerFaceCanvas = c;
   return c;
 }
@@ -2286,12 +2296,18 @@ let pendingOnlineRole = null; // 'host' or 'guest'
 
 // キャラ画像のプリロード（試合中用はplayerImage優先、なければimage）
 const charImages = {};
+const charFaceImages = {};
 CAPSULE_TYPES.forEach(t => {
   const src = t.playerImage || t.image;
   if (src) {
     const img = new Image();
     img.src = src;
     charImages[t.id] = img;
+  }
+  if (t.faceImage) {
+    const fimg = new Image();
+    fimg.src = t.faceImage;
+    charFaceImages[t.id] = fimg;
   }
 });
 
