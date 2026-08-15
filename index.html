@@ -642,6 +642,7 @@ const CAPSULE_TYPES = [
     image: 'assets/11C86C61-1F64-4D32-9539-3A016C57E4D0.jpg',
     faceImage: 'assets/umeoka_sou_face.png',
     faceScale: 2.0,
+    faceOffsetY: -8,
     skin: { jersey: '#2a6ad8', jerseyDark: '#1c4f9e', jerseyLight: '#4a8af0', shorts: '#e8e8e8', shortsDark: '#cccccc', skin: '#f4c49a', skinDark: '#d4a478', hair: '#1a1208', sockBand: '#2a6ad8', pattern: 'rightline', lineColor: '#e63946' },
   },
 ];
@@ -1918,9 +1919,10 @@ function drawPlayer(ent) {
   const faceC = ent.isPlayer ? getPlayerFaceCanvas() : null;
   if (faceC) {
     const fScale = (selectedCharacter && selectedCharacter.faceScale) || 1;
+    const fOffY = (selectedCharacter && selectedCharacter.faceOffsetY) || 0;
     const headH = 34 * fScale;               // 顔の高さ（体に合わせたサイズ）
     const headW = headH * faceC.ar;          // 縦横比を保つ
-    const fcy = headCenterY - 2;             // 頭の中心
+    const fcy = headCenterY - 2 + fOffY;     // 頭の中心（キャラごとに上下調整）
     ctx.drawImage(faceC.canvas, -headW / 2, fcy - headH / 2, headW, headH);
   } else {
     ctx.drawImage(P.head, -12, headCenterY - 14, 24, 26);
@@ -2427,7 +2429,7 @@ function renderCharacterSelect() {
 }
 
 function confirmCharacterAndStart(charId) {
-  selectedCharacter = charId ? { id: charId, img: charImages[charId], faceScale: (CAPSULE_TYPES.find(t => t.id === charId) || {}).faceScale || 1 } : null;
+  selectedCharacter = charId ? (() => { const t = CAPSULE_TYPES.find(t => t.id === charId) || {}; return { id: charId, img: charImages[charId], faceScale: t.faceScale || 1, faceOffsetY: t.faceOffsetY || 0 }; })() : null;
   _playerFaceCanvas = null;
   document.getElementById('characterSelectScreen').style.display = 'none';
 
