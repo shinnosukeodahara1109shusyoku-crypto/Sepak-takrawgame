@@ -2259,10 +2259,12 @@ function gameLoop(ts) {
         specialCutInEntity = null;
       }
     } else if (gameState === 'play') {
-      updatePlayer(player, localInput());
-      updatePlayer(cpu, remoteInput);
-      updateBallSubsteps(true);
-      updateEffects();
+      if (Date.now() >= matchHoldUntil) { // 開始コール中はボールを止める
+        updatePlayer(player, localInput());
+        updatePlayer(cpu, remoteInput);
+        updateBallSubsteps(true);
+        updateEffects();
+      }
     } else if (gameState === 'point') {
       pointTimer--;
       if (pointTimer <= 0) resetAfterPoint();
@@ -2331,7 +2333,7 @@ function gameLoop(ts) {
     }
   } else if (mode === 'guest') {
     const wasGameState = gameState;
-    if (gameState === 'play' && !specialCutInActive) {
+    if (gameState === 'play' && !specialCutInActive && Date.now() >= matchHoldUntil) {
       updatePlayer(cpu, localInput());
       updateBallSubsteps(true);
       updateEffects();
@@ -2855,6 +2857,7 @@ function startFirebaseFallback() {
 }
 
 let _matchStarted = false;
+let matchHoldUntil = 0; // この時刻まではボールを止める（開始コール演出中）
 function startOnlineGame() {
   document.getElementById('startScreen').style.display = 'none';
   mode = pendingOnlineRole || mode;
@@ -2920,6 +2923,7 @@ function beginOnlineMatch() {
   setTouchControlsVisible(true);
   netLatency = { rtt: 0, samples: [] };
   pingTimer = 0;
+  matchHoldUntil = Date.now() + 2000; // コールから2秒はボールを止める
   showStartCall();
 
   if (webrtcConnected) {
