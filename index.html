@@ -624,6 +624,7 @@ const CAPSULE_TYPES = [
     quote: '＜一言＞レシーブの安心感半端ないサーバー、笑わない男',
     image: 'assets/8c1548e1-1b07-4c63-ba7c-78db3911bcc1.png',
     faceImage: 'assets/inazawa_ryou_face.png',
+    faceScale: 1.5,
     skin: { jersey: '#1a1a1a', jerseyDark: '#0a0a0a', jerseyLight: '#333333', shorts: '#1a1a1a', shortsDark: '#0a0a0a', skin: '#f0c090', skinDark: '#d0a070', hair: '#0a0a0a', sockBand: '#1a1a1a', pattern: 'stripes', stripeColor: '#e8e8e8' },
   },
   {
@@ -640,6 +641,7 @@ const CAPSULE_TYPES = [
     quote: '＜一言＞アタック半端ない足元練習しろ',
     image: 'assets/11C86C61-1F64-4D32-9539-3A016C57E4D0.jpg',
     faceImage: 'assets/umeoka_sou_face.png',
+    faceScale: 2.0,
     skin: { jersey: '#2a6ad8', jerseyDark: '#1c4f9e', jerseyLight: '#4a8af0', shorts: '#e8e8e8', shortsDark: '#cccccc', skin: '#f4c49a', skinDark: '#d4a478', hair: '#1a1208', sockBand: '#2a6ad8', pattern: 'rightline', lineColor: '#e63946' },
   },
 ];
@@ -1915,7 +1917,8 @@ function drawPlayer(ent) {
   // 頭パーツ画像（顔写真は円で切らず、頭の位置にそのまま貼る）
   const faceC = ent.isPlayer ? getPlayerFaceCanvas() : null;
   if (faceC) {
-    const headH = 34;                        // 顔の高さ（体に合わせたサイズ）
+    const fScale = (selectedCharacter && selectedCharacter.faceScale) || 1;
+    const headH = 34 * fScale;               // 顔の高さ（体に合わせたサイズ）
     const headW = headH * faceC.ar;          // 縦横比を保つ
     const fcy = headCenterY - 2;             // 頭の中心
     ctx.drawImage(faceC.canvas, -headW / 2, fcy - headH / 2, headW, headH);
@@ -2424,7 +2427,7 @@ function renderCharacterSelect() {
 }
 
 function confirmCharacterAndStart(charId) {
-  selectedCharacter = charId ? { id: charId, img: charImages[charId] } : null;
+  selectedCharacter = charId ? { id: charId, img: charImages[charId], faceScale: (CAPSULE_TYPES.find(t => t.id === charId) || {}).faceScale || 1 } : null;
   _playerFaceCanvas = null;
   document.getElementById('characterSelectScreen').style.display = 'none';
 
