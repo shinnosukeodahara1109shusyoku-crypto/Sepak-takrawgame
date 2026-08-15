@@ -1831,17 +1831,19 @@ function drawPlayer(ent) {
   // 頭パーツ画像
   const faceC = ent.isPlayer ? getPlayerFaceCanvas() : null;
   if (faceC) {
+    const fr = 15;                 // 顔の半径（体に合わせて拡大）
+    const fcy = headCenterY - 3;   // 大きくした分、少し上へ
     ctx.save();
     ctx.beginPath();
-    ctx.arc(0, headCenterY, 11, 0, Math.PI * 2);
+    ctx.arc(0, fcy, fr, 0, Math.PI * 2);
     ctx.closePath();
     ctx.clip();
-    ctx.drawImage(faceC, -12, headCenterY - 13, 24, 24);
+    ctx.drawImage(faceC, -fr, fcy - fr, fr * 2, fr * 2);
     ctx.restore();
     ctx.strokeStyle = P.headRimColor || '#d4a478';
-    ctx.lineWidth = 1.2;
+    ctx.lineWidth = 1.4;
     ctx.beginPath();
-    ctx.arc(0, headCenterY, 11, 0, Math.PI * 2);
+    ctx.arc(0, fcy, fr, 0, Math.PI * 2);
     ctx.stroke();
   } else {
     ctx.drawImage(P.head, -12, headCenterY - 14, 24, 26);
