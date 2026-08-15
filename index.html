@@ -284,6 +284,23 @@
     width: 120px; height: 120px; object-fit: cover; border-radius: 12px;
     border: 3px solid #ff0; box-shadow: 0 0 16px #f80;
   }
+
+  /* ── オンライン準備待ち ── */
+  #waitingScreen {
+    position: fixed; inset: 0; z-index: 350;
+    background: rgba(0,0,8,0.92);
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    gap: 24px; color: #fff; backdrop-filter: blur(6px);
+  }
+  #waitingScreen.show { display: flex; }
+  .waiting-spinner {
+    width: 56px; height: 56px; border-radius: 50%;
+    border: 5px solid rgba(255,255,255,0.15);
+    border-top-color: #ff8a00;
+    animation: waitSpin 0.9s linear infinite;
+  }
+  @keyframes waitSpin { to { transform: rotate(360deg); } }
+  .waiting-text { font-size: 18px; color: #ffd700; text-shadow: 0 0 12px rgba(255,140,0,0.5); letter-spacing: 1px; }
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -386,6 +403,12 @@
 <!-- ── コレクション詳細 ── -->
 <div id="collectionDetail">
   <div class="collection-detail-card"></div>
+</div>
+
+<!-- ── オンライン準備待ち ── -->
+<div id="waitingScreen">
+  <div class="waiting-spinner"></div>
+  <div class="waiting-text">相手の準備を待っています...</div>
 </div>
 
 <div id="touchControls">
@@ -2806,27 +2829,55 @@ function startFirebaseFallback() {
   }
 }
 
+let _matchStarted = false;
 function startOnlineGame() {
   document.getElementById('startScreen').style.display = 'none';
   mode = pendingOnlineRole || mode;
+  oppCharId = null;
+  _matchStarted = false;
+
+  // 準備待ち画面を表示（両者の準備が整うまで試合は始めない）
+  document.getElementById('waitingScreen').classList.add('show');
+
+  // 自分のキャラ＋準備完了をFirebaseに登録、相手の情報を監視
+  if (roomRef) {
+    const myId = selectedCharacter ? selectedCharacter.id : '';
+    const myKey = mode === 'host' ? 'hostChar' : 'guestChar';
+    const oppKey = mode === 'host' ? 'guestChar' : 'hostChar';
+    const myReadyKey = mode === 'host' ? 'hostReady' : 'guestReady';
+    const oppReadyKey = mode === 'host' ? 'guestReady' : 'hostReady';
+    // キャラIDと準備フラグをセット
+    roomRef.child(myKey).set(myId);
+    roomRef.child(myReadyKey).set(true);
+    // 相手のキャラを取得
+    roomRef.child(oppKey).on('value', snap => {
+      const v = snap.val();
+      if (v) oppCharId = v;
+    });
+    // 両者の準備が整ったら試合開始
+    const checkReady = () => {
+      roomRef.child(oppReadyKey).once('value').then(snap => {
+        if (snap.val() === true) beginOnlineMatch();
+      });
+    };
+    roomRef.child(oppReadyKey).on('value', snap => {
+      if (snap.val() === true) beginOnlineMatch();
+    });
+    checkReady();
+  } else {
+    beginOnlineMatch();
+  }
+}
+
+function beginOnlineMatch() {
+  if (_matchStarted) return;
+  _matchStarted = true;
+  document.getElementById('waitingScreen').classList.remove('show');
   resetEntities();
   gameState = 'play';
   setTouchControlsVisible(true);
   netLatency = { rtt: 0, samples: [] };
   pingTimer = 0;
-
-  // キャラ選択情報を相手と交換（Firebase経由・一度だけ）
-  oppCharId = null;
-  if (roomRef) {
-    const myId = selectedCharacter ? selectedCharacter.id : '';
-    const myKey = mode === 'host' ? 'hostChar' : 'guestChar';
-    const oppKey = mode === 'host' ? 'guestChar' : 'hostChar';
-    roomRef.child(myKey).set(myId);
-    roomRef.child(oppKey).on('value', snap => {
-      const v = snap.val();
-      if (v) oppCharId = v;
-    });
-  }
 
   if (webrtcConnected) {
     console.log('WebRTC接続済み！P2P通信開始');
