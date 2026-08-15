@@ -570,6 +570,8 @@ let specialCutInActive = false;
 let specialCutInTimer = 0;
 let specialCutInEntity = null;
 let fireballActive = false;
+let rallyTouches = 0;      // 現在のサイドが連続でボールに触れた回数（最大3回）
+let ballNetSide = 0;       // ボールがネットのどちら側にあるか（-1:左/プレイヤー, 1:右/CPU）
 let pointMsg = '';
 let pointTimer = 0;
 let stars = [];
@@ -784,6 +786,8 @@ function resetEntities() {
   player = makePlayer(W * 0.25, true);
   cpu    = makePlayer(W * 0.75, false);
   ball   = makeBall();
+  rallyTouches = 0;
+  ballNetSide = ball.x < NET_X ? -1 : 1;
 }
 
 // ── 入力 ──────────────────────────────────────────
@@ -891,7 +895,9 @@ bindTouchButton('btnSpecial', 'KeyC');
 // ── CPU AI ────────────────────────────────────────
 function cpuAI() {
   if (gameState !== 'play') return;
-  if (cpu.specialGauge >= cpuSpecialCost && !specialCutInActive) {
+  // 必殺技はゲージ満タン＆ボールがあたり判定内のときのみ発動（それ以外は通常プレイ）
+  if (cpu.specialGauge >= cpuSpecialCost && !specialCutInActive &&
+      ball.x >= NET_X && Math.abs(ball.x - cpu.x) < 70 && Math.abs(ball.y - cpu.y) < 80 && rallyTouches < 3) {
     doSpecial(cpu);
     return;
   }
@@ -970,11 +976,13 @@ function doKick(ent) {
   if (ent.kickCooldown > 0) return;
   if (ent.isPlayer && ball.x > NET_X) return;
   if (!ent.isPlayer && ball.x < NET_X) return;
+  if (rallyTouches >= 3) return; // 同じサイドは3回まで
   const dx = ball.x - ent.x;
   const dy = ball.y - ent.y;
   const hitW = fireballActive ? 15 : 60;
   const hitH = fireballActive ? 20 : 80;
   if (Math.abs(dx) < hitW && Math.abs(dy) < hitH) {
+    rallyTouches++;
     const spd = (ent.isPlayer ? 13 : 13 * cpuDiff.kickMult) * 1.3;
     const dir = ent.isPlayer ? (Math.abs(dx) < 5 ? 1 : (dx > 0 ? 1 : -1)) : -1;
     ball.vx = dir * spd * 0.7;
@@ -992,11 +1000,13 @@ function doOverhead(ent) {
   if (ent.kickCooldown > 0) return;
   if (ent.isPlayer && ball.x > NET_X) return;
   if (!ent.isPlayer && ball.x < NET_X) return;
+  if (rallyTouches >= 3) return; // 同じサイドは3回まで
   const dx = ball.x - ent.x;
   const dy = ball.y - ent.y;
   const hitW = fireballActive ? 25 : 70;
   const hitH = fireballActive ? 30 : 80;
   if (Math.abs(dx) < hitW && Math.abs(dy) < hitH) {
+    rallyTouches++;
     const atkSpd = ent.isPlayer ? 14 : 14 * cpuDiff.kickMult;
     ball.vx = (ent.isPlayer ? 1 : -1) * atkSpd * 1.3;
     ball.vy = 6 * 1.3;
@@ -1022,6 +1032,14 @@ function doSpecial(ent) {
   const cost = (ent.isPlayer || isOnline) ? PLAYER_SPECIAL_COST : cpuSpecialCost;
   if (ent.specialGauge < cost) return;
   if (specialCutInActive) return;
+  // 通常のキックと同じく、自分側かつあたり判定内でのみ発動
+  if (ent.isPlayer && ball.x > NET_X) return;
+  if (!ent.isPlayer && ball.x < NET_X) return;
+  if (rallyTouches >= 3) return; // 同じサイドは3回まで
+  const dx = ball.x - ent.x;
+  const dy = ball.y - ent.y;
+  if (Math.abs(dx) > 70 || Math.abs(dy) > 80) return; // あたり判定外
+  rallyTouches++;
   ent.specialGauge = 0;
   const isLocal = ent.isPlayer || (mode === 'guest' && !ent.isPlayer);
   if (isLocal) document.getElementById('btnSpecial').classList.remove('ready');
@@ -1069,6 +1087,13 @@ function updateBall(authoritative) {
 
   ball.x += ball.vx * BALL_STEP_SCALE;
   ball.y += ball.vy * BALL_STEP_SCALE;
+
+  // ネット越え検出：ボールが反対サイドに移ったらタッチ回数をリセット
+  const side = ball.x < NET_X ? -1 : 1;
+  if (side !== ballNetSide) {
+    ballNetSide = side;
+    rallyTouches = 0;
+  }
 
   // 地面
   if (ball.y + BALL_R >= GROUND) {
@@ -1193,6 +1218,8 @@ function resetAfterPoint() {
   cpu.x = W * 0.75; cpu.y = GROUND; cpu.vx = 0; cpu.vy = 0; cpu.onGround = true;
   ball.x = serveSide === 1 ? W / 4 : W * 3 / 4; ball.y = GROUND - 240;
   ball.vx = 2 * serveSide; ball.vy = -4; ball.spin = 0; ball.trail = [];
+  rallyTouches = 0;
+  ballNetSide = ball.x < NET_X ? -1 : 1;
   effects = [];
   gameState = 'play';
 }
