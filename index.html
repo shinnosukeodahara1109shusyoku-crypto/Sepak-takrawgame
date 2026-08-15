@@ -1549,6 +1549,45 @@ function getPlayerParts(isPlayer) {
   }
 }
 
+// 画像の中身（白背景・透明でない部分）の境界を検出
+function detectContentBounds(img) {
+  const maxScan = 400;
+  const iw = img.naturalWidth, ih = img.naturalHeight;
+  const scale = Math.min(1, maxScan / Math.max(iw, ih));
+  const sw = Math.max(1, Math.round(iw * scale));
+  const sh = Math.max(1, Math.round(ih * scale));
+  const tmp = document.createElement('canvas');
+  tmp.width = sw; tmp.height = sh;
+  const tc = tmp.getContext('2d');
+  tc.drawImage(img, 0, 0, sw, sh);
+  let data;
+  try { data = tc.getImageData(0, 0, sw, sh).data; }
+  catch (e) { return null; }
+  const xs = [], ys = [];
+  for (let y = 0; y < sh; y++) {
+    for (let x = 0; x < sw; x++) {
+      const i = (y * sw + x) * 4;
+      const a = data[i + 3];
+      const r = data[i], g = data[i + 1], b = data[i + 2];
+      // 透明 or ほぼ白 は背景とみなす
+      if (a < 20) continue;
+      if (r > 235 && g > 235 && b > 235) continue;
+      xs.push(x); ys.push(y);
+    }
+  }
+  if (xs.length < 50) return null;
+  xs.sort((a, b) => a - b); ys.sort((a, b) => a - b);
+  // 外れ値（散った小さなゴミ点）を無視するためパーセンタイルで境界を取る
+  const pct = (arr, p) => arr[Math.floor((arr.length - 1) * p)];
+  const minX = pct(xs, 0.02), maxX = pct(xs, 0.98);
+  const minY = pct(ys, 0.02), maxY = pct(ys, 0.98);
+  // 元画像座標に戻す
+  return {
+    x: minX / scale, y: minY / scale,
+    w: (maxX - minX + 1) / scale, h: (maxY - minY + 1) / scale,
+  };
+}
+
 let _playerFaceCanvas = null;
 function getPlayerFaceCanvas() {
   if (_playerFaceCanvas) return _playerFaceCanvas;
@@ -1565,10 +1604,21 @@ function getPlayerFaceCanvas() {
   fc.arc(size/2, size/2, size/2, 0, Math.PI * 2);
   fc.closePath();
   fc.clip();
-  // 中央を正方形にクロップ（アスペクト比を保ちつつ丸に収まるよう cover）
-  const iw = img.naturalWidth, ih = img.naturalHeight;
-  const side = Math.min(iw, ih);
-  const sx = (iw - side) / 2, sy = (ih - side) / 2;
+  // 中身の境界を検出して顔部分だけを切り抜く（余白除去）
+  const b = detectContentBounds(img);
+  let cx, cy, side;
+  if (b) {
+    cx = b.x + b.w / 2;
+    // 顔の中心は輪郭の少し上寄り（鼻あたり）に来るよう調整
+    cy = b.y + b.h * 0.46;
+    // 幅・高さの大きい方を基準に、円によく収まるサイズへ
+    side = Math.max(b.w, b.h) * 0.9;
+  } else {
+    const iw = img.naturalWidth, ih = img.naturalHeight;
+    side = Math.min(iw, ih);
+    cx = iw / 2; cy = ih / 2;
+  }
+  const sx = cx - side / 2, sy = cy - side / 2;
   fc.drawImage(img, sx, sy, side, side, 0, 0, size, size);
   _playerFaceCanvas = c;
   return c;
@@ -1840,11 +1890,6 @@ function drawPlayer(ent) {
     ctx.clip();
     ctx.drawImage(faceC, -fr, fcy - fr, fr * 2, fr * 2);
     ctx.restore();
-    ctx.strokeStyle = P.headRimColor || '#d4a478';
-    ctx.lineWidth = 1.4;
-    ctx.beginPath();
-    ctx.arc(0, fcy, fr, 0, Math.PI * 2);
-    ctx.stroke();
   } else {
     ctx.drawImage(P.head, -12, headCenterY - 14, 24, 26);
   }
