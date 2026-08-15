@@ -1562,23 +1562,28 @@ function generatePlayerParts(isPlayer, skinCfg) {
   return parts;
 }
 
-// パーツキャッシュ
-let _playerParts = null, _cpuParts = null;
-let _playerSkinId = null;
-function getPlayerParts(isPlayer) {
-  if (isPlayer) {
-    const skinId = selectedCharacter ? selectedCharacter.id : null;
-    if (!_playerParts || _playerSkinId !== skinId) {
-      const charType = skinId ? CAPSULE_TYPES.find(t => t.id === skinId) : null;
-      _playerParts = generatePlayerParts(true, charType ? charType.skin : null);
-      _playerSkinId = skinId;
-      _playerFaceCanvas = null;
-    }
-    return _playerParts;
-  } else {
-    if (!_cpuParts) _cpuParts = generatePlayerParts(false);
-    return _cpuParts;
+// オンライン時の相手キャラID（自分のキャラは selectedCharacter）
+let oppCharId = null;
+
+// エンティティに対応するキャラIDを返す（モードと役割で決まる）
+function charIdForEntity(ent) {
+  const myId = selectedCharacter ? selectedCharacter.id : null;
+  if (mode === 'host') return ent.isPlayer ? myId : oppCharId;   // host: player=自分, cpu=相手
+  if (mode === 'guest') return ent.isPlayer ? oppCharId : myId;  // guest: cpu=自分, player=相手
+  return ent.isPlayer ? myId : null;                             // オフライン: player=自分, cpu=既定
+}
+
+// パーツキャッシュ（キャラID＋コート側でキー付け）
+const _partsCache = {};
+function getPlayerParts(entOrIsPlayer) {
+  const ent = (typeof entOrIsPlayer === 'object') ? entOrIsPlayer : { isPlayer: entOrIsPlayer };
+  const cid = charIdForEntity(ent);
+  const key = (cid || 'def') + (ent.isPlayer ? '_P' : '_C');
+  if (!_partsCache[key]) {
+    const charType = cid ? CAPSULE_TYPES.find(t => t.id === cid) : null;
+    _partsCache[key] = generatePlayerParts(ent.isPlayer, charType ? charType.skin : null);
   }
+  return _partsCache[key];
 }
 
 // 画像の中身（白背景・透明でない部分）の境界を検出
@@ -1653,19 +1658,21 @@ function removeBackground(fctx, w, h) {
   fctx.putImageData(data, 0, 0);
 }
 
-let _playerFaceCanvas = null;
-function getPlayerFaceCanvas() {
-  if (_playerFaceCanvas) return _playerFaceCanvas;
-  if (!selectedCharacter) return null;
-  // 専用の顔画像があればそれを優先、なければ従来のカード画像
-  const faceImg = charFaceImages[selectedCharacter.id];
-  const img = (faceImg && faceImg.complete && faceImg.naturalWidth > 0) ? faceImg : selectedCharacter.img;
-  if (!img || !img.complete || !img.naturalWidth) return null;
+// 顔キャンバスのキャッシュ（キャラIDごと）
+const _faceCache = {};
+function getFaceCanvasForChar(cid) {
+  if (!cid) return null;
+  if (_faceCache[cid]) return _faceCache[cid];
+  const t = CAPSULE_TYPES.find(x => x.id === cid);
+  if (!t) return null;
+  // 専用の顔画像があればそれを優先、なければ試合中の画像
+  const faceImg = charFaceImages[cid];
+  const img = (faceImg && faceImg.complete && faceImg.naturalWidth > 0) ? faceImg : charImages[cid];
+  if (!img || !img.complete || !img.naturalWidth) return null; // まだ読み込み中（キャッシュしない）
   // 中身（頭部）の境界を検出
   const b = detectContentBounds(img);
   let sx, sy, sw, sh;
   if (b) {
-    // 少し余白を足して髪の端が切れないように
     const padX = b.w * 0.04, padY = b.h * 0.04;
     sx = Math.max(0, b.x - padX);
     sy = Math.max(0, b.y - padY);
@@ -1674,7 +1681,6 @@ function getPlayerFaceCanvas() {
   } else {
     sx = 0; sy = 0; sw = img.naturalWidth; sh = img.naturalHeight;
   }
-  // 頭部の縦横比を保ったまま切り抜き
   const target = 200;
   const ar = sw / sh;
   let cw, ch;
@@ -1684,10 +1690,9 @@ function getPlayerFaceCanvas() {
   c.width = cw; c.height = ch;
   const fc = c.getContext('2d');
   fc.drawImage(img, sx, sy, sw, sh, 0, 0, cw, ch);
-  // 背景（白／透明）を除去
   removeBackground(fc, cw, ch);
-  _playerFaceCanvas = { canvas: c, ar };
-  return _playerFaceCanvas;
+  _faceCache[cid] = { canvas: c, ar, faceScale: t.faceScale || 1, faceOffsetY: t.faceOffsetY || 0 };
+  return _faceCache[cid];
 }
 
 // パーツ画像版の2関節リム描画
@@ -1780,7 +1785,7 @@ function drawPlayer(ent) {
   ctx.scale(scale * 1.3, 1.3); // キャラクターの大きさ
 
   // パーツ画像取得
-  const P = getPlayerParts(ent.isPlayer);
+  const P = getPlayerParts(ent);
 
   // ── プロポーション定義（約2.5頭身：Head Soccer風デフォルメ体型） ──
   const headR       = 10;
@@ -1945,13 +1950,11 @@ function drawPlayer(ent) {
     ctx.translate(0, -neckY);
   }
   // 頭パーツ画像（顔写真は円で切らず、頭の位置にそのまま貼る）
-  const faceC = ent.isPlayer ? getPlayerFaceCanvas() : null;
+  const faceC = getFaceCanvasForChar(charIdForEntity(ent));
   if (faceC) {
-    const fScale = (selectedCharacter && selectedCharacter.faceScale) || 1;
-    const fOffY = (selectedCharacter && selectedCharacter.faceOffsetY) || 0;
-    const headH = 34 * fScale;               // 顔の高さ（体に合わせたサイズ）
+    const headH = 34 * faceC.faceScale;      // 顔の高さ（体に合わせたサイズ）
     const headW = headH * faceC.ar;          // 縦横比を保つ
-    const fcy = headCenterY - 2 + fOffY;     // 頭の中心（キャラごとに上下調整）
+    const fcy = headCenterY - 2 + faceC.faceOffsetY; // 頭の中心（キャラごとに上下調整）
     ctx.drawImage(faceC.canvas, -headW / 2, fcy - headH / 2, headW, headH);
   } else {
     ctx.drawImage(P.head, -12, headCenterY - 14, 24, 26);
@@ -2458,8 +2461,7 @@ function renderCharacterSelect() {
 }
 
 function confirmCharacterAndStart(charId) {
-  selectedCharacter = charId ? (() => { const t = CAPSULE_TYPES.find(t => t.id === charId) || {}; return { id: charId, img: charImages[charId], faceScale: t.faceScale || 1, faceOffsetY: t.faceOffsetY || 0 }; })() : null;
-  _playerFaceCanvas = null;
+  selectedCharacter = charId ? { id: charId, img: charImages[charId] } : null;
   document.getElementById('characterSelectScreen').style.display = 'none';
 
   if (pendingGameMode === 'online') {
@@ -2812,6 +2814,19 @@ function startOnlineGame() {
   setTouchControlsVisible(true);
   netLatency = { rtt: 0, samples: [] };
   pingTimer = 0;
+
+  // キャラ選択情報を相手と交換（Firebase経由・一度だけ）
+  oppCharId = null;
+  if (roomRef) {
+    const myId = selectedCharacter ? selectedCharacter.id : '';
+    const myKey = mode === 'host' ? 'hostChar' : 'guestChar';
+    const oppKey = mode === 'host' ? 'guestChar' : 'hostChar';
+    roomRef.child(myKey).set(myId);
+    roomRef.child(oppKey).on('value', snap => {
+      const v = snap.val();
+      if (v) oppCharId = v;
+    });
+  }
 
   if (webrtcConnected) {
     console.log('WebRTC接続済み！P2P通信開始');
