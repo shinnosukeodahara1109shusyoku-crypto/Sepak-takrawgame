@@ -1588,6 +1588,39 @@ function detectContentBounds(img) {
   };
 }
 
+// 端から連結した背景（白／透明）を透明化する（顔内部の白目・歯は残す）
+function removeBackground(fctx, w, h) {
+  let data;
+  try { data = fctx.getImageData(0, 0, w, h); }
+  catch (e) { return; }
+  const px = data.data;
+  const isBg = i => {
+    const a = px[i + 3];
+    if (a < 30) return true;
+    const r = px[i], g = px[i + 1], b = px[i + 2];
+    return r > 232 && g > 232 && b > 232;
+  };
+  const visited = new Uint8Array(w * h);
+  const stack = [];
+  // 4辺の背景ピクセルを起点に
+  for (let x = 0; x < w; x++) { stack.push(x); stack.push((h - 1) * w + x); }
+  for (let y = 0; y < h; y++) { stack.push(y * w); stack.push(y * w + w - 1); }
+  while (stack.length) {
+    const p = stack.pop();
+    if (visited[p]) continue;
+    visited[p] = 1;
+    const i = p * 4;
+    if (!isBg(i)) continue;
+    px[i + 3] = 0; // 透明化
+    const x = p % w, y = (p / w) | 0;
+    if (x > 0) stack.push(p - 1);
+    if (x < w - 1) stack.push(p + 1);
+    if (y > 0) stack.push(p - w);
+    if (y < h - 1) stack.push(p + w);
+  }
+  fctx.putImageData(data, 0, 0);
+}
+
 let _playerFaceCanvas = null;
 function getPlayerFaceCanvas() {
   if (_playerFaceCanvas) return _playerFaceCanvas;
@@ -1596,32 +1629,33 @@ function getPlayerFaceCanvas() {
   const faceImg = charFaceImages[selectedCharacter.id];
   const img = (faceImg && faceImg.complete && faceImg.naturalWidth > 0) ? faceImg : selectedCharacter.img;
   if (!img || !img.complete || !img.naturalWidth) return null;
-  const size = 96;
-  const c = document.createElement('canvas');
-  c.width = size; c.height = size;
-  const fc = c.getContext('2d');
-  fc.beginPath();
-  fc.arc(size/2, size/2, size/2, 0, Math.PI * 2);
-  fc.closePath();
-  fc.clip();
-  // 中身の境界を検出して顔部分だけを切り抜く（余白除去）
+  // 中身（頭部）の境界を検出
   const b = detectContentBounds(img);
-  let cx, cy, side;
+  let sx, sy, sw, sh;
   if (b) {
-    cx = b.x + b.w / 2;
-    // 顔の中心は輪郭の少し上寄り（鼻あたり）に来るよう調整
-    cy = b.y + b.h * 0.46;
-    // 幅・高さの大きい方を基準に、円によく収まるサイズへ
-    side = Math.max(b.w, b.h) * 0.9;
+    // 少し余白を足して髪の端が切れないように
+    const padX = b.w * 0.04, padY = b.h * 0.04;
+    sx = Math.max(0, b.x - padX);
+    sy = Math.max(0, b.y - padY);
+    sw = Math.min(img.naturalWidth - sx, b.w + padX * 2);
+    sh = Math.min(img.naturalHeight - sy, b.h + padY * 2);
   } else {
-    const iw = img.naturalWidth, ih = img.naturalHeight;
-    side = Math.min(iw, ih);
-    cx = iw / 2; cy = ih / 2;
+    sx = 0; sy = 0; sw = img.naturalWidth; sh = img.naturalHeight;
   }
-  const sx = cx - side / 2, sy = cy - side / 2;
-  fc.drawImage(img, sx, sy, side, side, 0, 0, size, size);
-  _playerFaceCanvas = c;
-  return c;
+  // 頭部の縦横比を保ったまま切り抜き
+  const target = 200;
+  const ar = sw / sh;
+  let cw, ch;
+  if (ar >= 1) { cw = target; ch = Math.round(target / ar); }
+  else { ch = target; cw = Math.round(target * ar); }
+  const c = document.createElement('canvas');
+  c.width = cw; c.height = ch;
+  const fc = c.getContext('2d');
+  fc.drawImage(img, sx, sy, sw, sh, 0, 0, cw, ch);
+  // 背景（白／透明）を除去
+  removeBackground(fc, cw, ch);
+  _playerFaceCanvas = { canvas: c, ar };
+  return _playerFaceCanvas;
 }
 
 // パーツ画像版の2関節リム描画
@@ -1878,18 +1912,13 @@ function drawPlayer(ent) {
     ctx.rotate(neckAng);
     ctx.translate(0, -neckY);
   }
-  // 頭パーツ画像
+  // 頭パーツ画像（顔写真は円で切らず、頭の位置にそのまま貼る）
   const faceC = ent.isPlayer ? getPlayerFaceCanvas() : null;
   if (faceC) {
-    const fr = 15;                 // 顔の半径（体に合わせて拡大）
-    const fcy = headCenterY - 3;   // 大きくした分、少し上へ
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(0, fcy, fr, 0, Math.PI * 2);
-    ctx.closePath();
-    ctx.clip();
-    ctx.drawImage(faceC, -fr, fcy - fr, fr * 2, fr * 2);
-    ctx.restore();
+    const headH = 34;                        // 顔の高さ（体に合わせたサイズ）
+    const headW = headH * faceC.ar;          // 縦横比を保つ
+    const fcy = headCenterY - 2;             // 頭の中心
+    ctx.drawImage(faceC.canvas, -headW / 2, fcy - headH / 2, headW, headH);
   } else {
     ctx.drawImage(P.head, -12, headCenterY - 14, 24, 26);
   }
