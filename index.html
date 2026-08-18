@@ -2211,6 +2211,12 @@ function updateEffects() {
 }
 
 let lastTime = 0;
+let loopRunning = false; // gameLoopの多重起動を防ぐ
+function ensureGameLoop() {
+  if (loopRunning) return;
+  loopRunning = true;
+  requestAnimationFrame(gameLoop);
+}
 function gameLoop(ts) {
   requestAnimationFrame(gameLoop);
   const dt = Math.min(ts - lastTime, 50);
@@ -2546,7 +2552,7 @@ function confirmCharacterAndStart(charId) {
       result: 'in_progress',
     });
   }
-  requestAnimationFrame(gameLoop);
+  ensureGameLoop();
 }
 
 document.getElementById('charSelectBackBtn').addEventListener('click', () => {
@@ -2942,7 +2948,7 @@ function beginOnlineMatch() {
     startFirebaseFallback();
   }
 
-  requestAnimationFrame(gameLoop);
+  ensureGameLoop();
 }
 
 // ── ガチャ画面 ────────────────────────────────────
