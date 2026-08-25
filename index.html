@@ -266,11 +266,16 @@
   }
   .collection-item.clickable:active { transform: scale(0.93); box-shadow: 0 0 12px rgba(255,200,0,0.4); }
 
-  #nicknameRow { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 16px 0; background: rgba(0,0,0,0.55); padding: 14px 22px; border-radius: 14px; border: 2px solid rgba(255,180,0,0.6); box-shadow: 0 0 18px rgba(255,140,0,0.35); backdrop-filter: blur(6px); }
-  #nicknameRow span { font-size: 15px; font-weight: bold; color: #ffd700; letter-spacing: 1px; text-shadow: 0 0 8px rgba(255,140,0,0.5); }
-  #nicknameInput { font-size: 18px; font-weight: bold; text-align: center; width: 200px; padding: 10px 14px; border-radius: 10px; border: 2px solid rgba(255,180,0,0.5); background: rgba(255,255,255,0.95); color: #222; }
+  #nicknameScreen {
+    position: fixed; inset: 0; z-index: 320;
+    background: rgba(0,0,8,0.92);
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px; color: #fff; backdrop-filter: blur(6px);
+  }
+  #nicknameScreen.show { display: flex; }
+  #nicknameInput { font-size: 20px; font-weight: bold; text-align: center; width: 220px; padding: 12px 16px; border-radius: 12px; border: 2px solid rgba(255,180,0,0.6); background: rgba(255,255,255,0.95); color: #222; box-shadow: 0 0 18px rgba(255,140,0,0.35); }
   #nicknameInput::placeholder { color: #999; font-weight: normal; }
-  #nicknameInput:focus { outline: none; border-color: #ff8a00; box-shadow: 0 0 12px rgba(255,140,0,0.6); }
+  #nicknameInput:focus { outline: none; border-color: #ff8a00; box-shadow: 0 0 14px rgba(255,140,0,0.7); }
 
   #loginRow { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 10px; }
   #loginStatus { font-size: 12px; color: #afa; min-height: 16px; }
@@ -350,11 +355,6 @@
   </div>
   <p style="color:#8f8">先に5点取ったほうが勝ち！</p>
 
-  <div id="nicknameRow">
-    <span>ニックネーム</span>
-    <input id="nicknameInput" maxlength="12" placeholder="名前を入力">
-  </div>
-
   <div id="modeSelect">
     <button class="mode-btn" id="cpuBtn">⚔ CPU対戦</button>
     <button class="mode-btn btn-online" id="onlineModeBtn">🌐 通信対戦</button>
@@ -391,6 +391,14 @@
   <h2 class="gacha-title">キャラクターを選択</h2>
   <div class="collection-grid" id="characterSelectGrid"></div>
   <button class="mode-btn btn-secondary" id="charSelectBackBtn">← 戻る</button>
+</div>
+
+<!-- ── ニックネーム入力 ── -->
+<div id="nicknameScreen">
+  <h2 class="gacha-title">ニックネーム</h2>
+  <input id="nicknameInput" maxlength="12" placeholder="名前を入力">
+  <button class="mode-btn btn-green" id="nicknameOkBtn">決定</button>
+  <button class="mode-btn btn-secondary" id="nicknameBackBtn">← 戻る</button>
 </div>
 
 <!-- ── 勝利ガチャ ── -->
@@ -743,6 +751,29 @@ function getNickname() {
     try { localStorage.setItem('sepak_nickname', el.value.trim()); } catch (e) {}
   });
 })();
+
+// ニックネーム入力画面：CPU/通信ボタンから呼び、決定後に続きの処理へ
+let _nicknameNext = null;
+function askNickname(next) {
+  _nicknameNext = next;
+  const el = document.getElementById('nicknameInput');
+  try { if (el) el.value = localStorage.getItem('sepak_nickname') || ''; } catch (e) {}
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('nicknameScreen').classList.add('show');
+  if (el) el.focus();
+}
+document.getElementById('nicknameOkBtn').addEventListener('click', function() {
+  const el = document.getElementById('nicknameInput');
+  try { localStorage.setItem('sepak_nickname', el ? el.value.trim() : ''); } catch (e) {}
+  document.getElementById('nicknameScreen').classList.remove('show');
+  const fn = _nicknameNext; _nicknameNext = null;
+  if (fn) fn();
+});
+document.getElementById('nicknameBackBtn').addEventListener('click', function() {
+  _nicknameNext = null;
+  document.getElementById('nicknameScreen').classList.remove('show');
+  document.getElementById('startScreen').style.display = 'flex';
+});
 
 function loadCollection() {
   try {
@@ -2479,8 +2510,9 @@ function btnTransition(btn, fn) {
 
 document.getElementById('cpuBtn').addEventListener('click', function() {
   btnTransition(this, () => {
-    document.getElementById('startScreen').style.display = 'none';
-    document.getElementById('difficultyScreen').style.display = 'flex';
+    askNickname(() => {
+      document.getElementById('difficultyScreen').style.display = 'flex';
+    });
   });
 });
 
@@ -2611,8 +2643,11 @@ document.getElementById('onlineModeBtn').addEventListener('click', function() {
     return;
   }
   btnTransition(this, () => {
-    document.getElementById('modeSelect').style.display = 'none';
-    document.getElementById('onlineMenu').style.display = 'flex';
+    askNickname(() => {
+      document.getElementById('startScreen').style.display = 'flex';
+      document.getElementById('modeSelect').style.display = 'none';
+      document.getElementById('onlineMenu').style.display = 'flex';
+    });
   });
 });
 
