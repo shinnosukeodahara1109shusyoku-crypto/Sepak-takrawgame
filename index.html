@@ -266,6 +266,11 @@
   }
   .collection-item.clickable:active { transform: scale(0.93); box-shadow: 0 0 12px rgba(255,200,0,0.4); }
 
+  #nicknameRow { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 12px 0; }
+  #nicknameRow span { font-size: 13px; color: #ffd700; }
+  #nicknameInput { font-size: 16px; text-align: center; width: 180px; padding: 8px 12px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.5); color: #fff; }
+  #nicknameInput::placeholder { color: rgba(255,255,255,0.3); }
+
   #loginRow { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 10px; }
   #loginStatus { font-size: 12px; color: #afa; min-height: 16px; }
 
@@ -343,6 +348,11 @@
     <p>C ：必殺技（ゲージMAXで発動！）</p>
   </div>
   <p style="color:#8f8">先に5点取ったほうが勝ち！</p>
+
+  <div id="nicknameRow">
+    <span>ニックネーム</span>
+    <input id="nicknameInput" maxlength="12" placeholder="名前を入力">
+  </div>
 
   <div id="modeSelect">
     <button class="mode-btn" id="cpuBtn">⚔ CPU対戦</button>
@@ -710,6 +720,20 @@ function pickCapsule() {
   }
   return CAPSULE_TYPES[CAPSULE_TYPES.length - 1];
 }
+
+// ── ニックネーム ──────────────────────────────────
+function getNickname() {
+  const el = document.getElementById('nicknameInput');
+  return el ? el.value.trim() : '';
+}
+(function initNickname() {
+  const el = document.getElementById('nicknameInput');
+  if (!el) return;
+  try { el.value = localStorage.getItem('sepak_nickname') || ''; } catch (e) {}
+  el.addEventListener('input', () => {
+    try { localStorage.setItem('sepak_nickname', el.value.trim()); } catch (e) {}
+  });
+})();
 
 function loadCollection() {
   try {
@@ -2549,6 +2573,7 @@ function confirmCharacterAndStart(charId) {
       startedAt: new Date().toISOString(),
       difficulty: currentGameDifficulty,
       uid: currentUser ? currentUser.uid : 'anonymous',
+      nickname: getNickname() || '(名無し)',
       result: 'in_progress',
     });
   }
