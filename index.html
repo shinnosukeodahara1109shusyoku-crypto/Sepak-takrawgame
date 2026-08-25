@@ -1826,10 +1826,13 @@ function drawLimbImg(originX, originY, hipAngleDeg, kneeAngleDeg, upperPart, low
   if (capPart) {
     ctx.drawImage(capPart, -capPart.width / 8, -capPart.height / 8, capPart.width / 4, capPart.height / 4);
   }
-  // 持ち物（手に持たせる）
+  // 持ち物（手に持たせる・上向き）
   if (heldImg && heldImg.complete && heldImg.naturalWidth > 0) {
     const hh = 22, hw = hh * (heldImg.naturalWidth / heldImg.naturalHeight);
+    ctx.save();
+    ctx.rotate(Math.PI); // 180度回して上向きに
     ctx.drawImage(heldImg, -hw / 2, -2, hw, hh);
+    ctx.restore();
   }
   ctx.restore();
 }
