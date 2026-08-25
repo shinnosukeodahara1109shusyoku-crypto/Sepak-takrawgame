@@ -266,10 +266,11 @@
   }
   .collection-item.clickable:active { transform: scale(0.93); box-shadow: 0 0 12px rgba(255,200,0,0.4); }
 
-  #nicknameRow { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 12px 0; }
-  #nicknameRow span { font-size: 13px; color: #ffd700; }
-  #nicknameInput { font-size: 16px; text-align: center; width: 180px; padding: 8px 12px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.5); color: #fff; }
-  #nicknameInput::placeholder { color: rgba(255,255,255,0.3); }
+  #nicknameRow { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 16px 0; background: rgba(0,0,0,0.55); padding: 14px 22px; border-radius: 14px; border: 2px solid rgba(255,180,0,0.6); box-shadow: 0 0 18px rgba(255,140,0,0.35); backdrop-filter: blur(6px); }
+  #nicknameRow span { font-size: 15px; font-weight: bold; color: #ffd700; letter-spacing: 1px; text-shadow: 0 0 8px rgba(255,140,0,0.5); }
+  #nicknameInput { font-size: 18px; font-weight: bold; text-align: center; width: 200px; padding: 10px 14px; border-radius: 10px; border: 2px solid rgba(255,180,0,0.5); background: rgba(255,255,255,0.95); color: #222; }
+  #nicknameInput::placeholder { color: #999; font-weight: normal; }
+  #nicknameInput:focus { outline: none; border-color: #ff8a00; box-shadow: 0 0 12px rgba(255,140,0,0.6); }
 
   #loginRow { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 10px; }
   #loginStatus { font-size: 12px; color: #afa; min-height: 16px; }
@@ -2120,8 +2121,10 @@ function drawScore() {
 
   ctx.textAlign = 'center';
   ctx.fillStyle = '#adf';
-  ctx.font = 'bold 13px Arial';
-  ctx.fillText('PLAYER', W/2 - 45, 26);
+  let pName = (getNickname() || 'PLAYER');
+  if (pName.length > 7) pName = pName.slice(0, 7);
+  ctx.font = 'bold 12px Arial';
+  ctx.fillText(pName, W/2 - 45, 26);
   ctx.fillStyle = '#faa';
   ctx.fillText('CPU', W/2 + 45, 26);
 
