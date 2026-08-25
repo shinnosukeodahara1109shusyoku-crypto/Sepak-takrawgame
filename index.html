@@ -725,7 +725,7 @@ const CAPSULE_TYPES = [
     quote: '＜一言＞アタックが一級品のそら豆　個人的に好きです',
     image: 'assets/nashimoto_card.png',
     faceImage: 'assets/nashimoto_face.png',
-    skin: { jersey: '#1a1a1a', jerseyDark: '#0a0a0a', jerseyLight: '#333333', shorts: '#1a1a1a', shortsDark: '#0a0a0a', skin: '#f4c49a', skinDark: '#d4a478', hair: '#0a0a0a', sockBand: '#1a1a1a', pattern: 'sidelines', lineColor: '#e63946', number: '#e63946' },
+    skin: { jersey: '#1a1a1a', jerseyDark: '#0a0a0a', jerseyLight: '#333333', shorts: '#1a1a1a', shortsDark: '#0a0a0a', skin: '#f4c49a', skinDark: '#d4a478', hair: '#0a0a0a', sockBand: '#1a1a1a', pattern: 'sidelines', lineColor: '#e63946', number: '#e63946', waistLine: '#e63946' },
   },
 ];
 let gachaShown = false;
@@ -1504,6 +1504,7 @@ function generatePlayerParts(isPlayer, skinCfg) {
   const shoe       = '#202020';
   const numberColor = s.number || '#fff';
   const collarColor = s.collarColor || null;
+  const waistLine  = s.waistLine || null;
   const pattern    = s.pattern || null;
   const stripeColor = s.stripeColor || '#1a1a1a';
   const lineColor  = s.lineColor || '#66ccff';
@@ -1593,6 +1594,11 @@ function generatePlayerParts(isPlayer, skinCfg) {
     beltGrad.addColorStop(0, jerseyDark); beltGrad.addColorStop(1, shorts);
     pc.fillStyle = beltGrad;
     pc.beginPath(); pc.roundRect(2, 15, 24, 5, 1); pc.fill();
+    // 上着とズボンの境目のライン
+    if (waistLine) {
+      pc.fillStyle = waistLine;
+      pc.fillRect(2, 14, 24, 2);
+    }
   });
 
   // ショーツパーツ (26x12)
