@@ -2061,9 +2061,13 @@ function drawPlayer(ent) {
   ctx.drawImage(P.torso, -14, shoulderY, 28, chestBottomY - shoulderY + (hipY - chestBottomY) + 2);
 
   // ── 腕（パーツ画像版） ──
-  const heldItem = (charIdForEntity(ent) === 'nashimoto') ? soramameImg : null;
   drawLimbImg(-14, shoulderY + 2, backArm, backArmKnee, P.upperArm, P.forearm, P.hand, upperArmLen, forearmLen);
-  drawLimbImg(14, shoulderY + 2, frontArm, frontArmKnee, P.upperArm, P.forearm, P.hand, upperArmLen, forearmLen, heldItem);
+  drawLimbImg(14, shoulderY + 2, frontArm, frontArmKnee, P.upperArm, P.forearm, P.hand, upperArmLen, forearmLen);
+  // 梨本そら豆：体に重ならないよう前側の外に上向きで持たせる
+  if (charIdForEntity(ent) === 'nashimoto' && soramameImg.complete && soramameImg.naturalWidth > 0) {
+    const sbh = 20, sbw = sbh * (soramameImg.naturalWidth / soramameImg.naturalHeight);
+    ctx.drawImage(soramameImg, 24 - sbw / 2, -28, sbw, sbh);
+  }
 
   // ── 首 ──
   ctx.drawImage(P.neck, -3, neckY, 6, shoulderY - neckY + 1);
