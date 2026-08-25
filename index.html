@@ -473,6 +473,8 @@ const playerSpecialImg = new Image();
 playerSpecialImg.src = 'assets/cdb56d1d-62ff-4854-8267-4b1d7c035c6a.png';
 const cpuSpecialImg = new Image();
 cpuSpecialImg.src = 'assets/d3d1081b-19d0-4dc1-b932-4ced9702dd71.png';
+const soramameImg = new Image();
+soramameImg.src = 'assets/soramame.png';
 
 // ── サウンド ──────────────────────────────────────
 let audioCtx = null;
@@ -1809,7 +1811,7 @@ function getFaceCanvasForChar(cid) {
 }
 
 // パーツ画像版の2関節リム描画
-function drawLimbImg(originX, originY, hipAngleDeg, kneeAngleDeg, upperPart, lowerPart, capPart, upperLen, lowerLen) {
+function drawLimbImg(originX, originY, hipAngleDeg, kneeAngleDeg, upperPart, lowerPart, capPart, upperLen, lowerLen, heldImg) {
   ctx.save();
   ctx.translate(originX, originY);
   ctx.rotate(hipAngleDeg * Math.PI / 180);
@@ -1823,6 +1825,11 @@ function drawLimbImg(originX, originY, hipAngleDeg, kneeAngleDeg, upperPart, low
   // 末端パーツ（靴/手）
   if (capPart) {
     ctx.drawImage(capPart, -capPart.width / 8, -capPart.height / 8, capPart.width / 4, capPart.height / 4);
+  }
+  // 持ち物（手に持たせる）
+  if (heldImg && heldImg.complete && heldImg.naturalWidth > 0) {
+    const hh = 22, hw = hh * (heldImg.naturalWidth / heldImg.naturalHeight);
+    ctx.drawImage(heldImg, -hw / 2, -2, hw, hh);
   }
   ctx.restore();
 }
@@ -2045,8 +2052,9 @@ function drawPlayer(ent) {
   ctx.drawImage(P.torso, -14, shoulderY, 28, chestBottomY - shoulderY + (hipY - chestBottomY) + 2);
 
   // ── 腕（パーツ画像版） ──
+  const heldItem = (charIdForEntity(ent) === 'nashimoto') ? soramameImg : null;
   drawLimbImg(-14, shoulderY + 2, backArm, backArmKnee, P.upperArm, P.forearm, P.hand, upperArmLen, forearmLen);
-  drawLimbImg(14, shoulderY + 2, frontArm, frontArmKnee, P.upperArm, P.forearm, P.hand, upperArmLen, forearmLen);
+  drawLimbImg(14, shoulderY + 2, frontArm, frontArmKnee, P.upperArm, P.forearm, P.hand, upperArmLen, forearmLen, heldItem);
 
   // ── 首 ──
   ctx.drawImage(P.neck, -3, neckY, 6, shoulderY - neckY + 1);
