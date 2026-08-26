@@ -2452,18 +2452,24 @@ function gameLoop(ts) {
       pointMsg = remoteHostState.pointMsg;
       pointTimer = remoteHostState.pointTimer;
 
-      const rbx = remoteHostState.ball.x, rby = remoteHostState.ball.y;
+      // 受信したボールは「片道遅延ぶん過去」の位置。速度で先読みして現在位置に近づける
+      const rbvx = remoteHostState.ball.vx, rbvy = remoteHostState.ball.vy;
+      const lagMs = Math.min(250, (netLatency.rtt || 0) / 2); // 片道遅延（上限250ms）
+      const lagFrames = lagMs / 16.67;
+      const step = BALL_STEP_SCALE * BALL_SUBSTEPS;
+      const rbx = remoteHostState.ball.x + rbvx * step * lagFrames;
+      const rby = remoteHostState.ball.y + rbvy * step * lagFrames;
       const bdx = rbx - ball.x, bdy = rby - ball.y;
       const dist = Math.sqrt(bdx * bdx + bdy * bdy);
-      if (dist > 80) {
+      if (dist > 90) {
         ball.x = rbx; ball.y = rby;
-        ball.vx = remoteHostState.ball.vx;
-        ball.vy = remoteHostState.ball.vy;
+        ball.vx = rbvx;
+        ball.vy = rbvy;
       } else {
-        ball.x += bdx * 0.3;
-        ball.y += bdy * 0.3;
-        ball.vx += (remoteHostState.ball.vx - ball.vx) * 0.6;
-        ball.vy += (remoteHostState.ball.vy - ball.vy) * 0.6;
+        ball.x += bdx * 0.35;
+        ball.y += bdy * 0.35;
+        ball.vx += (rbvx - ball.vx) * 0.6;
+        ball.vy += (rbvy - ball.vy) * 0.6;
       }
       ball.spin = remoteHostState.ball.spin;
 
