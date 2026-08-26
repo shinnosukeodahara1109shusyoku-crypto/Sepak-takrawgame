@@ -740,6 +740,19 @@ function pickCapsule() {
   return CAPSULE_TYPES[CAPSULE_TYPES.length - 1];
 }
 
+// 日本時間の読みやすい文字列（例: 2026/08/26 21:34:05）
+function jstString() {
+  try {
+    return new Date().toLocaleString('ja-JP', {
+      timeZone: 'Asia/Tokyo',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+    });
+  } catch (e) {
+    return new Date().toISOString();
+  }
+}
+
 // ── ニックネーム ──────────────────────────────────
 function getNickname() {
   const el = document.getElementById('nicknameInput');
@@ -1319,7 +1332,7 @@ function showPoint(msg, next) {
       const winner = score.p > score.cpu ? 'player' : 'cpu';
       const durationSec = currentGameStartTime ? Math.round((Date.now() - currentGameStartTime) / 1000) : null;
       db.ref('play_logs/' + currentGameLogKey).update({
-        endedAt: new Date().toISOString(),
+        endedAt: jstString(),
         scorePlayer: score.p,
         scoreCpu: score.cpu,
         winner: winner,
@@ -2637,7 +2650,7 @@ function confirmCharacterAndStart(charId) {
     const logRef = db.ref('play_logs').push();
     currentGameLogKey = logRef.key;
     logRef.set({
-      startedAt: new Date().toISOString(),
+      startedAt: jstString(),
       difficulty: currentGameDifficulty,
       uid: currentUser ? currentUser.uid : 'anonymous',
       nickname: getNickname() || '(名無し)',
