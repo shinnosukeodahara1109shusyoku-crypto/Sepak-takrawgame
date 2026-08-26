@@ -1131,7 +1131,7 @@ function doOverhead(ent) {
     ent.overheadState = 2;
     ent.overheadTimer = 24 + KICK_HOLD_FRAMES;
     ent.kickEffect = 14 + KICK_HOLD_FRAMES;
-    const maxGauge = ent.isPlayer ? PLAYER_SPECIAL_COST : cpuSpecialCost;
+    const maxGauge = (ent.isPlayer || mode === 'host' || mode === 'guest') ? PLAYER_SPECIAL_COST : cpuSpecialCost;
     ent.specialGauge = Math.min(maxGauge, ent.specialGauge + 1);
     const isLocalPlayer = ent.isPlayer || (mode === 'guest' && !ent.isPlayer);
     if (isLocalPlayer && ent.specialGauge >= PLAYER_SPECIAL_COST) {
@@ -1154,7 +1154,10 @@ function doSpecial(ent) {
   if (rallyTouches >= 3) return; // 同じサイドは3回まで
   const dx = ball.x - ent.x;
   const dy = ball.y - ent.y;
-  if (Math.abs(dx) > 70 || Math.abs(dy) > 80) return; // あたり判定外
+  // オンラインは通信遅延でボールが動くため判定を広めに取る
+  const rangeW = isOnline ? 130 : 70;
+  const rangeH = isOnline ? 130 : 80;
+  if (Math.abs(dx) > rangeW || Math.abs(dy) > rangeH) return; // あたり判定外
   rallyTouches++;
   ent.specialGauge = 0;
   const isLocal = ent.isPlayer || (mode === 'guest' && !ent.isPlayer);
