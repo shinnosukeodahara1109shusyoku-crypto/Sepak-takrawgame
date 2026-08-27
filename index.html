@@ -148,7 +148,10 @@
     gap: 14px; color: #fff; padding: 16px; backdrop-filter: blur(4px);
   }
   #rankingScreen.show { display: flex; }
-  #rankingList { width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 6px; max-height: 60vh; overflow-y: auto; }
+  #rankingTabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; max-width: 360px; }
+  .rank-tab { padding: 6px 12px; font-size: 13px; font-weight: bold; color: #fff; border: none; border-radius: 8px; cursor: pointer; background: rgba(255,255,255,0.12); }
+  .rank-tab.active { background: linear-gradient(180deg, #ff9933, #ff6600); box-shadow: 0 0 12px rgba(255,120,0,0.4); }
+  #rankingList { width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 6px; max-height: 52vh; overflow-y: auto; }
   .rank-row { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); border-radius: 10px; padding: 8px 14px; }
   .rank-row.me { background: rgba(255,180,0,0.18); border: 1px solid rgba(255,180,0,0.5); }
   .rank-pos { font-size: 18px; font-weight: bold; width: 34px; text-align: center; color: #ffd700; }
@@ -459,6 +462,13 @@
 <!-- ── ランキング ── -->
 <div id="rankingScreen">
   <h2 class="gacha-title">🏆 勝利数ランキング</h2>
+  <div id="rankingTabs">
+    <button class="rank-tab active" data-cat="total">総合</button>
+    <button class="rank-tab" data-cat="amateur">アマ</button>
+    <button class="rank-tab" data-cat="professional">プロ</button>
+    <button class="rank-tab" data-cat="legend">レジェンド</button>
+    <button class="rank-tab" data-cat="online">通信</button>
+  </div>
   <div id="rankingList"></div>
   <button class="mode-btn btn-secondary" id="rankingBackBtn">← 戻る</button>
 </div>
@@ -784,10 +794,14 @@ function sanitizeKey(s) {
 function recordWin() {
   if (!db) return;
   const name = getNickname() || '(名無し)';
+  // 勝利カテゴリ（難易度 or オンライン）
+  const cat = (mode === 'host' || mode === 'guest') ? 'online' : currentGameDifficulty;
   const ref = db.ref('rankings/' + sanitizeKey(name));
   ref.transaction(cur => {
     cur = cur || { name: name, wins: 0 };
     cur.wins = (cur.wins || 0) + 1;
+    cur.byDiff = cur.byDiff || {};
+    cur.byDiff[cat] = (cur.byDiff[cat] || 0) + 1;
     cur.name = name;
     cur.lastWin = jstString();
     return cur;
@@ -3253,31 +3267,51 @@ document.getElementById('collectionBackBtn').addEventListener('click', () => {
 });
 
 // ── ランキング画面 ──────────────────────────────
+let _rankingData = null;
+let _rankingCat = 'total';
+function winsForCat(v, cat) {
+  if (cat === 'total') return v.wins || 0;
+  return (v.byDiff && v.byDiff[cat]) || 0;
+}
+function drawRankingList() {
+  const list = document.getElementById('rankingList');
+  const myName = getNickname() || '(名無し)';
+  const cat = _rankingCat;
+  const arr = (_rankingData || []).filter(v => winsForCat(v, cat) > 0)
+    .sort((a, b) => winsForCat(b, cat) - winsForCat(a, cat));
+  if (!arr.length) { list.innerHTML = '<div class="empty">まだ記録がありません</div>'; return; }
+  list.innerHTML = '';
+  arr.slice(0, 50).forEach((v, i) => {
+    const row = document.createElement('div');
+    row.className = 'rank-row' + (v.name === myName ? ' me' : '');
+    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+    row.innerHTML = `<div class="rank-pos">${medal}</div>` +
+      `<div class="rank-name"></div><div class="rank-wins">${winsForCat(v, cat)}勝</div>`;
+    row.querySelector('.rank-name').textContent = v.name || '(名無し)';
+    list.appendChild(row);
+  });
+}
 function renderRanking() {
   const list = document.getElementById('rankingList');
   list.innerHTML = '<div class="empty">読み込み中...</div>';
   if (!db) { list.innerHTML = '<div class="empty">ランキングは利用できません</div>'; return; }
-  const myName = getNickname() || '(名無し)';
   db.ref('rankings').once('value').then(snap => {
-    const arr = [];
-    snap.forEach(c => { const v = c.val(); if (v && v.wins) arr.push(v); });
-    arr.sort((a, b) => (b.wins || 0) - (a.wins || 0));
-    if (!arr.length) { list.innerHTML = '<div class="empty">まだ記録がありません</div>'; return; }
-    list.innerHTML = '';
-    arr.slice(0, 50).forEach((v, i) => {
-      const row = document.createElement('div');
-      row.className = 'rank-row' + (v.name === myName ? ' me' : '');
-      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
-      row.innerHTML = `<div class="rank-pos">${medal}</div>` +
-        `<div class="rank-name"></div><div class="rank-wins">${v.wins}勝</div>`;
-      row.querySelector('.rank-name').textContent = v.name || '(名無し)';
-      list.appendChild(row);
-    });
+    _rankingData = [];
+    snap.forEach(c => { const v = c.val(); if (v && v.wins) _rankingData.push(v); });
+    drawRankingList();
   }).catch((e) => {
     console.error('ranking read error', e);
     list.innerHTML = '<div class="empty">読み込みに失敗しました<br>' + (e && e.message ? e.message : '') + '</div>';
   });
 }
+document.querySelectorAll('.rank-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.rank-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    _rankingCat = tab.dataset.cat;
+    drawRankingList();
+  });
+});
 document.getElementById('rankingBtn').addEventListener('click', function() {
   btnTransition(this, () => {
     renderRanking();
