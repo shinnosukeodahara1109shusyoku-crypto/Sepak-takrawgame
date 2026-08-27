@@ -3258,7 +3258,7 @@ function renderRanking() {
   list.innerHTML = '<div class="empty">読み込み中...</div>';
   if (!db) { list.innerHTML = '<div class="empty">ランキングは利用できません</div>'; return; }
   const myName = getNickname() || '(名無し)';
-  db.ref('rankings').orderByChild('wins').limitToLast(50).once('value').then(snap => {
+  db.ref('rankings').once('value').then(snap => {
     const arr = [];
     snap.forEach(c => { const v = c.val(); if (v && v.wins) arr.push(v); });
     arr.sort((a, b) => (b.wins || 0) - (a.wins || 0));
@@ -3273,7 +3273,10 @@ function renderRanking() {
       row.querySelector('.rank-name').textContent = v.name || '(名無し)';
       list.appendChild(row);
     });
-  }).catch(() => { list.innerHTML = '<div class="empty">読み込みに失敗しました</div>'; });
+  }).catch((e) => {
+    console.error('ranking read error', e);
+    list.innerHTML = '<div class="empty">読み込みに失敗しました<br>' + (e && e.message ? e.message : '') + '</div>';
+  });
 }
 document.getElementById('rankingBtn').addEventListener('click', function() {
   btnTransition(this, () => {
