@@ -141,6 +141,21 @@
   #backBtn { margin-top: 8px; }
 
   /* ── ガチャ ── */
+  #rankingScreen {
+    position: fixed; inset: 0; z-index: 300;
+    background: rgba(0,0,5,0.92);
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; color: #fff; padding: 16px; backdrop-filter: blur(4px);
+  }
+  #rankingScreen.show { display: flex; }
+  #rankingList { width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 6px; max-height: 60vh; overflow-y: auto; }
+  .rank-row { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06); border-radius: 10px; padding: 8px 14px; }
+  .rank-row.me { background: rgba(255,180,0,0.18); border: 1px solid rgba(255,180,0,0.5); }
+  .rank-pos { font-size: 18px; font-weight: bold; width: 34px; text-align: center; color: #ffd700; }
+  .rank-name { flex: 1; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rank-wins { font-size: 15px; font-weight: bold; color: #8f8; }
+  #rankingList .empty { color: #aaa; font-size: 14px; text-align: center; padding: 20px; }
+
   #gachaScreen, #collectionScreen, #difficultyScreen, #characterSelectScreen {
     position: fixed; inset: 0; z-index: 300;
     background: rgba(0,0,5,0.92);
@@ -359,6 +374,7 @@
     <button class="mode-btn" id="cpuBtn">⚔ CPU対戦</button>
     <button class="mode-btn btn-online" id="onlineModeBtn">🌐 通信対戦</button>
     <button class="mode-btn btn-green" id="collectionBtn">📦 コレクション</button>
+    <button class="mode-btn" id="rankingBtn">🏆 ランキング</button>
   </div>
 
   <div id="loginRow">
@@ -438,6 +454,13 @@
   <h2 class="gacha-title">コレクション</h2>
   <div class="collection-grid" id="collectionGrid"></div>
   <button class="mode-btn btn-secondary" id="collectionBackBtn">← 戻る</button>
+</div>
+
+<!-- ── ランキング ── -->
+<div id="rankingScreen">
+  <h2 class="gacha-title">🏆 勝利数ランキング</h2>
+  <div id="rankingList"></div>
+  <button class="mode-btn btn-secondary" id="rankingBackBtn">← 戻る</button>
 </div>
 
 <!-- ── コレクション詳細 ── -->
@@ -753,6 +776,24 @@ function jstString() {
   }
 }
 
+// ── 勝利数ランキング ──────────────────────────────
+let _winRecorded = false;
+function sanitizeKey(s) {
+  return (s || '').replace(/[.#$\[\]\/]/g, '_').slice(0, 20) || '名無し';
+}
+function recordWin() {
+  if (!db) return;
+  const name = getNickname() || '(名無し)';
+  const ref = db.ref('rankings/' + sanitizeKey(name));
+  ref.transaction(cur => {
+    cur = cur || { name: name, wins: 0 };
+    cur.wins = (cur.wins || 0) + 1;
+    cur.name = name;
+    cur.lastWin = jstString();
+    return cur;
+  });
+}
+
 // ── ニックネーム ──────────────────────────────────
 function getNickname() {
   const el = document.getElementById('nicknameInput');
@@ -917,6 +958,7 @@ function resetEntities() {
   ball   = makeBall();
   rallyTouches = 0;
   ballNetSide = ball.x < NET_X ? -1 : 1;
+  _winRecorded = false;
 }
 
 // ── 入力 ──────────────────────────────────────────
@@ -2528,6 +2570,13 @@ function gameLoop(ts) {
     }
   }
 
+  // 勝利数の記録（自分が勝った試合を1回だけ計上）
+  if (gameState === 'gameover' && !_winRecorded) {
+    _winRecorded = true;
+    const iWon = (mode === 'guest') ? (score.cpu >= WIN_SCORE) : (score.p >= WIN_SCORE);
+    if (iWon) recordWin();
+  }
+
   drawEffects();
   drawBall();
   drawPlayer(player);
@@ -3201,6 +3250,39 @@ document.getElementById('collectionBtn').addEventListener('click', function() {
 
 document.getElementById('collectionBackBtn').addEventListener('click', () => {
   document.getElementById('collectionScreen').style.display = 'none';
+});
+
+// ── ランキング画面 ──────────────────────────────
+function renderRanking() {
+  const list = document.getElementById('rankingList');
+  list.innerHTML = '<div class="empty">読み込み中...</div>';
+  if (!db) { list.innerHTML = '<div class="empty">ランキングは利用できません</div>'; return; }
+  const myName = getNickname() || '(名無し)';
+  db.ref('rankings').orderByChild('wins').limitToLast(50).once('value').then(snap => {
+    const arr = [];
+    snap.forEach(c => { const v = c.val(); if (v && v.wins) arr.push(v); });
+    arr.sort((a, b) => (b.wins || 0) - (a.wins || 0));
+    if (!arr.length) { list.innerHTML = '<div class="empty">まだ記録がありません</div>'; return; }
+    list.innerHTML = '';
+    arr.slice(0, 50).forEach((v, i) => {
+      const row = document.createElement('div');
+      row.className = 'rank-row' + (v.name === myName ? ' me' : '');
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+      row.innerHTML = `<div class="rank-pos">${medal}</div>` +
+        `<div class="rank-name"></div><div class="rank-wins">${v.wins}勝</div>`;
+      row.querySelector('.rank-name').textContent = v.name || '(名無し)';
+      list.appendChild(row);
+    });
+  }).catch(() => { list.innerHTML = '<div class="empty">読み込みに失敗しました</div>'; });
+}
+document.getElementById('rankingBtn').addEventListener('click', function() {
+  btnTransition(this, () => {
+    renderRanking();
+    document.getElementById('rankingScreen').classList.add('show');
+  });
+});
+document.getElementById('rankingBackBtn').addEventListener('click', () => {
+  document.getElementById('rankingScreen').classList.remove('show');
 });
 
 // ── オープニング演出（タイトルのフェードイン + ボイス） ──
